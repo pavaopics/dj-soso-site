@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Escolher capa do vídeo</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#111210;color:#efede7;display:grid;place-items:center;min-height:100svh;padding:24px}
+  .card{width:min(680px,100%);background:#1a1b19;border:1px solid rgba(239,237,231,.14);border-radius:16px;padding:24px}
+  h1{font-size:20px;margin:0 0 6px}
+  p.hint{color:#aaa9a2;font-size:13px;margin:0 0 20px;line-height:1.5}
+  label.btn{display:inline-flex;align-items:center;gap:8px;background:#c7a869;color:#111210;font-weight:700;font-size:12px;letter-spacing:.06em;padding:12px 18px;border-radius:999px;cursor:pointer}
+  label.btn input{display:none}
+  video{width:100%;border-radius:12px;background:#000;margin-top:20px}
+  .seek{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .seek input[type=range]{flex:1;accent-color:#c7a869}
+  .time{font-variant-numeric:tabular-nums;font-size:12px;color:#aaa9a2;min-width:64px;text-align:right}
+  .actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+  button{font:inherit;border:0;border-radius:999px;padding:12px 18px;font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer}
+  button.capture{background:#25d366;color:#0b140e}
+  button.capture[disabled]{opacity:.4;cursor:not-allowed}
+  button.save{background:#efede7;color:#111210}
+  img.preview{width:100%;border-radius:12px;margin-top:20px;display:none}
+  .note{font-size:11px;color:#aaa9a2;margin-top:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Capa do vídeo</h1>
+  <p class="hint">Selecione o vídeo, arraste até o momento exato (como no Instagram) e capture o quadro como capa.</p>
+  <label class="btn">Escolher vídeo<input id="file" type="file" accept="video/*"/></label>
+  <video id="video" controls playsinline></video>
+  <div class="seek">
+    <input id="seek" type="range" min="0" max="1000" value="0"/>
+    <span class="time" id="time">0:00</span>
+  </div>
+  <div class="actions">
+    <button id="capture" class="capture" disabled>Capturar este quadro</button>
+    <button id="save" class="save" hidden>Salvar capa</button>
+  </div>
+  <img id="preview" class="preview" alt="preview da capa"/>
+  <p class="note">Depois de salvar, mova o arquivo para <b>public/galeria/videos/</b> com o mesmo nome do vídeo (<code>1.jpg</code> para <code>1.mp4</code>). Ela passa a ser a capa desse vídeo.</p>
+</div>
+<script>
+  const fileInput = document.getElementById('file');
+  const video = document.getElementById('video');
+  const seek = document.getElementById('seek');
+  const timeLabel = document.getElementById('time');
+  const capture = document.getElementById('capture');
+  const save = document.getElementById('save');
+  const preview = document.getElementById('preview');
+  let fileName = '';
+
+  function fmt(s) {
+    if (!Number.isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    fileName = f.name.replace(/\.[^.]+$/, '');
+    video.src = URL.createObjectURL(f);
+    capture.disabled = true;
+    save.hidden = true;
+    preview.hidden = true;
+  });
+
+  video.addEventListener('loadedmetadata', () => {
+    seek.max = Math.max(1, Math.floor(video.duration * 100));
+    seek.value = 0;
+  });
+
+  function syncTime() {
+    const t = (video.duration * seek.value) / (seek.max || 1);
+    timeLabel.textContent = fmt(t);
+  }
+  seek.addEventListener('input', () => {
+    const t = (video.duration * seek.value) / (seek.max || 1);
+    video.currentTime = t;
+    syncTime();
+  });
+  video.addEventListener('timeupdate', () => {
+    if (video.duration) {
+      seek.value = (video.currentTime / video.duration) * seek.max;
+      syncTime();
+    }
+  });
+
+  capture.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    save.href = canvas.toDataURL('image/jpeg', 0.92).replace('image/jpeg', 'image/octet-stream');
+    save.download = `${fileName}.jpg`;
+    preview.src = canvas.toDataURL('image/jpeg', 0.92);
+    preview.hidden = false;
+    save.hidden = false;
+  });
+</script>
+</body>
+</html>

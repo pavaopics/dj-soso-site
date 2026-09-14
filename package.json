@@ -6,7 +6,11 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "gallery": "node scripts/generate-gallery.mjs",
+    "capa": "open scripts/capa.html",
+    "predev": "node scripts/generate-gallery.mjs",
     "dev": "vinext dev",
+    "prebuild": "node scripts/generate-gallery.mjs",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint app components/site-experience.tsx data lib",
