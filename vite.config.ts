@@ -16,6 +16,10 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localBindingConfig = {
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
+  vars: {
+    CONTENT_SOURCE: process.env.CONTENT_SOURCE ?? 'local',
+    R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL ?? 'https://media.djsoso.com.br',
+  },
   d1_databases: d1
     ? [
         {
@@ -45,11 +49,13 @@ export default defineConfig(async () => {
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import('@cloudflare/vite-plugin');
 
+  const server = isCodexSeatbeltSandbox
+    ? { host: '127.0.0.1', watch: { useFsEvents: false, usePolling: true } }
+    : { host: '127.0.0.1' };
+
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server,
     plugins: [
       adminApiPlugin(),
       vinext(),

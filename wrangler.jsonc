@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dj-soso-site",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "CONTENT_SOURCE": "local",
+    "R2_PUBLIC_BASE_URL": "https://media.djsoso.com.br"
+  },
+  "d1_databases": [
+    {
+      "binding": "CONTENT_DB",
+      "database_name": "dj-soso-db",
+      "database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "dj-soso-media"
+    }
+  ],
+  "env": {
+    "staging": {
+      "vars": {
+        "CONTENT_SOURCE": "local",
+        "R2_PUBLIC_BASE_URL": "https://media.djsoso.com.br"
+      },
+      "d1_databases": [
+        {
+          "binding": "CONTENT_DB",
+          "database_name": "dj-soso-db-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "dj-soso-media-staging"
+        }
+      ]
+    }
+  }
+}

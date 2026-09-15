@@ -5,13 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Download, Megaphone, Menu, MessageCircle, Music2, PartyPopper, Sparkles, Sunset, X } from 'lucide-react';
 import type { MediaItem } from '@/data/content';
 import type { SiteConfig } from '@/data/site';
+import type { SectionImages } from '@/data/section-images';
 import { biography, faq, formats, photoLabels, presentationCopy, whatsappLink } from '@/data/presentation';
 import { track } from '@/lib/analytics';
 import { SectionImage } from '@/components/section-image';
-import { sectionImages } from '@/data/section-images';
 
-type Props = { site: SiteConfig; gallery: MediaItem[] };
-const intro: MediaItem = { id: 'intro', type: 'video', videoUrl: '/media/soso-apresentacao.mp4?v=audio-normalizado-1', poster: sectionImages.hero.src, title: 'O melhor da Sosô em 35 segundos', subtitle: 'Cinco momentos, uma personalidade só.', alt: 'Seleção de momentos da DJ Sosô tocando', aspectRatio: '9/16' };
+type Props = { site: SiteConfig; gallery: MediaItem[]; sectionImages: SectionImages };
 const formatIcons = { lounge: Sunset, events: PartyPopper, brandFormat: Megaphone };
 
 function Brand() {
@@ -211,7 +210,7 @@ function MobileMenu({ site, close }: { site: SiteConfig; close: () => void }) {
   return <dialog ref={ref} className="sx-menu" onCancel={e => { e.preventDefault(); close(); }} aria-label="Menu principal"><button onClick={close} aria-label="Fechar menu"><X /></button><nav>{site.navigation.map((link, index) => <a href={link.href} onClick={close} key={link.href}><small>0{index + 1}</small>{link.label}<ArrowUpRight /></a>)}</nav><p>DJ SOSÔ · SÃO PAULO, BRASIL</p></dialog>;
 }
 
-export function SiteExperience({ site, gallery }: Props) {
+export function SiteExperience({ site, gallery, sectionImages }: Props) {
   const [menu, setMenu] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [visiblePhotos, setVisiblePhotos] = useState(4);
@@ -222,6 +221,7 @@ export function SiteExperience({ site, gallery }: Props) {
     return () => window.removeEventListener('scroll', update);
   }, []);
   const order = ['foto-2', 'foto-4', 'foto-1', 'foto-6'];
+  const intro: MediaItem = { id: 'intro', type: 'video', videoUrl: '/media/soso-apresentacao.mp4?v=audio-normalizado-1', poster: sectionImages.hero.src, title: 'O melhor da Sosô em 35 segundos', subtitle: 'Cinco momentos, uma personalidade só.', alt: 'Seleção de momentos da DJ Sosô tocando', aspectRatio: '9/16' };
   const photos = gallery.filter(item => item.type === 'foto').map(item => {
     const fileNumber = item.src?.match(/\/(\d+)\.[^/?]+(?:\?|$)/)?.[1];
     const labelKey = fileNumber ? `foto-${fileNumber}` : item.id;
@@ -238,7 +238,7 @@ export function SiteExperience({ site, gallery }: Props) {
     {menu && <MobileMenu site={site} close={() => setMenu(false)} />}
     <main id="conteudo">
       <section className="sx-hero sx-hero--portrait-first sx-shell">
-        <div className="sx-hero-portrait"><SectionImage imageKey="hero" width="1024" height="1536" fetchPriority="high" /></div>
+        <div className="sx-hero-portrait"><SectionImage imageKey="hero" images={sectionImages} width="1024" height="1536" fetchPriority="high" /></div>
         <div className="sx-hero-copy"><p className="sx-eyebrow"><span className="sx-live-dot" />SÃO PAULO, BRASIL · DJ & CRIADORA</p><p className="sx-hero-lead">9 anos. Personalidade de sobra.<br /><strong>Música para conectar pessoas.</strong></p><p className="sx-intro">{presentationCopy.intro}</p><div className="sx-actions"><ContactLink site={site} source="hero" /><a className="sx-inline-link" href="#resumo" onClick={() => track('hero_watch_clicked')}>Ver o resumo da Sosô <ArrowDown size={17} /></a></div><div className="sx-hero-foot"><span>LOUNGE / SUNSET / EVENTOS / MARCAS</span><KitLink compact /></div></div>
       </section>
       <section className="sx-summary sx-chapter sx-chapter--summary" id="resumo" aria-labelledby="resumo-title">
@@ -262,7 +262,7 @@ export function SiteExperience({ site, gallery }: Props) {
           <div className="sx-format-grid">{formats.map((format, index) => {
             const Icon = formatIcons[format.imageSlot];
             return <article className="sx-format" data-format={format.imageSlot} key={format.name}>
-              <div className="sx-format-image"><SectionImage imageKey={format.imageSlot} loading="lazy" /><span>0{index + 1}</span></div>
+              <div className="sx-format-image"><SectionImage imageKey={format.imageSlot} images={sectionImages} loading="lazy" /><span>0{index + 1}</span></div>
               <p className="sx-eyebrow"><Icon size={18} aria-hidden="true" />{format.tag}</p>
               <h3>{format.name}</h3><p>{format.text}</p><small>{format.places}</small>
               <a className="sx-format-cta" href={whatsappLink(site.contact.whatsapp, format.topic)} onClick={() => track('whatsapp_clicked', { source: format.name })}>{index === 2 ? 'Propor uma parceria' : `Consultar ${format.name}`} <ArrowUpRight size={17} /></a>
@@ -274,13 +274,13 @@ export function SiteExperience({ site, gallery }: Props) {
       <section className="sx-chapter sx-chapter--about" id="about" aria-labelledby="about-title">
         <div className="sx-section sx-shell">
           <div className="sx-section-head"><div><p className="sx-eyebrow">03 / CONHEÇA A SOFIA</p><h2 id="about-title">Pequena na idade.<br /><em>Grande na curiosidade.</em></h2></div></div>
-          <div className="sx-about"><div className="sx-about-image"><SectionImage imageKey="about" width="1024" height="1536" loading="lazy" /><span className="sx-photo-label">CURIOSA POR NATUREZA ✳</span></div><div><p className="sx-body-lead">{biography}</p><p>{presentationCopy.aboutStory}</p><p>{presentationCopy.aboutEnergy}</p><div className="sx-about-note"><Music2 /><span>Uma história em construção.<br /><strong>Um ritmo que já é só dela.</strong></span></div><a className="sx-inline-link" href={site.social.instagram} onClick={() => track('instagram_clicked')}>Acompanhe a Sosô no Instagram <ArrowUpRight size={17} /></a></div></div>
+          <div className="sx-about"><div className="sx-about-image"><SectionImage imageKey="about" images={sectionImages} width="1024" height="1536" loading="lazy" /><span className="sx-photo-label">CURIOSA POR NATUREZA ✳</span></div><div><p className="sx-body-lead">{biography}</p><p>{presentationCopy.aboutStory}</p><p>{presentationCopy.aboutEnergy}</p><div className="sx-about-note"><Music2 /><span>Uma história em construção.<br /><strong>Um ritmo que já é só dela.</strong></span></div><a className="sx-inline-link" href={site.social.instagram} onClick={() => track('instagram_clicked')}>Acompanhe a Sosô no Instagram <ArrowUpRight size={17} /></a></div></div>
         </div>
       </section>
       <section className="sx-chapter sx-chapter--gallery" id="gallery" aria-labelledby="gallery-title">
         <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">04 / GALERIA DE FOTOS</p><h2 id="gallery-title">Além do <em>play.</em></h2></div><p>Retratos, música e personalidade.<br />Toque em uma foto para ver de perto.</p></div><div className="sx-photo-grid" id="photos-grid">{photos.slice(0, visiblePhotos).map((photo, index) => <button key={photo.id} className="sx-photo" onClick={() => openPhoto(index)} aria-label={`Ampliar: ${photo.alt}`}><img src={photo.src} alt={photo.alt} loading="lazy" /><span>{String(index + 1).padStart(2, '0')}<ArrowUpRight size={20} /></span></button>)}</div>{visiblePhotos < photos.length && <button className="sx-button sx-button-outline sx-more" aria-controls="photos-grid" onClick={() => { setVisiblePhotos(count => Math.min(count + 4, photos.length)); track('gallery_more_clicked'); }}>Mostrar mais fotos <ArrowDown size={17} /></button>}</div>
       </section>
-      <section className="sx-brands sx-chapter sx-chapter--brands" id="marcas" aria-labelledby="marcas-title"><div className="sx-shell sx-section sx-brand-layout"><div><p className="sx-eyebrow">05 / PROJETOS & PARCERIAS</p><h2 id="marcas-title">DJ SOSÔ<br /><em>+ sua marca.</em></h2><p className="sx-body-lead">Música e conteúdo<br />com a personalidade da Sosô.</p><p>{presentationCopy.partnership}</p><ul className="sx-brand-services"><li><Sparkles size={18} />Conteúdo para redes e campanhas</li><li><Music2 size={18} />Apresentações em ativações de marca</li><li><ArrowUpRight size={18} />Projetos e experiências personalizados</li></ul><ContactLink site={site} source="brands" label="Propor uma parceria" topic="um projeto com minha marca" /><p className="sx-fine">{presentationCopy.partnershipBrief}</p></div><div className="sx-brand-art"><SectionImage imageKey="brands" loading="lazy" /><span>MÚSICA.<br />IDEIAS.<br />CONEXÕES.</span></div></div></section>
+      <section className="sx-brands sx-chapter sx-chapter--brands" id="marcas" aria-labelledby="marcas-title"><div className="sx-shell sx-section sx-brand-layout"><div><p className="sx-eyebrow">05 / PROJETOS & PARCERIAS</p><h2 id="marcas-title">DJ SOSÔ<br /><em>+ sua marca.</em></h2><p className="sx-body-lead">Música e conteúdo<br />com a personalidade da Sosô.</p><p>{presentationCopy.partnership}</p><ul className="sx-brand-services"><li><Sparkles size={18} />Conteúdo para redes e campanhas</li><li><Music2 size={18} />Apresentações em ativações de marca</li><li><ArrowUpRight size={18} />Projetos e experiências personalizados</li></ul><ContactLink site={site} source="brands" label="Propor uma parceria" topic="um projeto com minha marca" /><p className="sx-fine">{presentationCopy.partnershipBrief}</p></div><div className="sx-brand-art"><SectionImage imageKey="brands" images={sectionImages} loading="lazy" /><span>MÚSICA.<br />IDEIAS.<br />CONEXÕES.</span></div></div></section>
       <section className="sx-chapter sx-chapter--equipment" id="equipamentos" aria-labelledby="equipamentos-title">
         <div className="sx-section sx-shell">
           <div className="sx-section-head"><div><p className="sx-eyebrow">06 / ESTRUTURA & SERVIÇOS</p><h2 id="equipamentos-title">O som.<br />E tudo <em>ao redor.</em></h2></div><p>Apresentação, equipamentos e registro.<br />Nossa equipe ajuda a planejar a estrutura do seu evento.</p></div>

@@ -4,21 +4,23 @@ import type { Metadata } from 'next';
 import { site } from '@/data/site';
 import { biography, formats, presentationCopy, whatsappLink } from '@/data/presentation';
 import { SectionImage } from '@/components/section-image';
+import { getPublicContent } from '@/lib/content-source';
 import './presskit.css';
 
 export const metadata: Metadata = { title: 'DJ Sosô | Press kit', description: 'Conheça a Sosô, os formatos de apresentação e os projetos com marcas. Planeje seu evento com nossa equipe.', alternates: { canonical: '/presskit' } };
 
-export default function PressKit() {
+export default async function PressKit() {
+  const { sectionImages } = await getPublicContent();
   return <main className="pk-document">
     <nav className="pk-nav" aria-label="Press kit"><a href="/">← Voltar ao site</a><a href="/presskit-soso.pdf" download>Baixar press kit (PDF) ↓</a></nav>
     <section className="pk-page pk-cover">
       <div className="pk-top"><b>DJ SOSÔ</b><span>PRESS KIT · EVENTOS & MARCAS</span></div>
-      <div className="pk-cover-grid"><div><p className="pk-label">SÃO PAULO, BRASIL</p><h1><small>DJ</small>SOSÔ</h1><h2>9 anos.<br />Personalidade de sobra.</h2><p>Música para conectar pessoas.<br />{presentationCopy.intro}</p></div><SectionImage imageKey="presskitCover" /></div>
+      <div className="pk-cover-grid"><div><p className="pk-label">SÃO PAULO, BRASIL</p><h1><small>DJ</small>SOSÔ</h1><h2>9 anos.<br />Personalidade de sobra.</h2><p>Música para conectar pessoas.<br />{presentationCopy.intro}</p></div><SectionImage imageKey="presskitCover" images={sectionImages} /></div>
       <div className="pk-bottom"><span>MÚSICA · PERSONALIDADE · CONEXÃO</span><span>01 / 03</span></div>
     </section>
     <section className="pk-page">
       <div className="pk-top"><b>DJ SOSÔ</b><span>SOFIA & SUA MÚSICA</span></div>
-      <div className="pk-bio"><SectionImage imageKey="presskitBio" /><div><p className="pk-label">CONHEÇA A SOFIA</p><h2>Pequena na idade.<br />Grande na curiosidade.</h2><p>{biography}</p><p>{presentationCopy.aboutStory}</p></div></div>
+      <div className="pk-bio"><SectionImage imageKey="presskitBio" images={sectionImages} /><div><p className="pk-label">CONHEÇA A SOFIA</p><h2>Pequena na idade.<br />Grande na curiosidade.</h2><p>{biography}</p><p>{presentationCopy.aboutStory}</p></div></div>
       <h2 className="pk-section-title">Formatos de contratação.</h2>
       <div className="pk-formats">{formats.map(format => <article key={format.name}><p className="pk-label">{format.tag}</p><h3>{format.name}</h3><p>{format.text}</p><small>{format.places}</small></article>)}</div>
       <div className="pk-repertoire"><b>REPERTÓRIO</b><p>{site.repertoire.join(' · ')}</p></div>
