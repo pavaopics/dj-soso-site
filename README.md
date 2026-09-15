@@ -18,10 +18,10 @@ npm run dev
 
 O site local abre em `http://localhost:3000`.
 
-Rotas úteis:
+Rotas úteis no desenvolvimento local:
 
 - `/` — site principal
-- `/admin` — painel da equipe
+- `/admin` — painel local de desenvolvimento
 - `/presskit` — press kit online
 
 ## Qualidade
@@ -41,8 +41,15 @@ npm run build
 
 Ao rodar `npm run dev` ou `npm run build`, a galeria é atualizada automaticamente pelo script `scripts/generate-gallery.mjs`.
 
-## Cloudflare Produção
+## Fluxo De Publicação
 
-A base D1/R2 de produção está documentada em `docs/cloudflare-admin-delivery-a.md`.
+O conteúdo é versionado no Git. O painel admin funciona somente localmente em `npm run dev`; em produção, `/admin` responde 404.
 
-Nesta fase, `CONTENT_SOURCE=local` mantém o site usando integralmente o conteúdo versionado atual. `CONTENT_SOURCE=cloud` só deve ser ativado depois da migração e validação em staging.
+Fluxo recomendado:
+
+1. Rodar `npm run dev`.
+2. Usar `/admin` localmente para alterar fotos, vídeos, descrições e imagens de seção.
+3. Revisar o site local em `http://localhost:3000`.
+4. Rodar `npm run verify`.
+5. Conferir `git diff`.
+6. Fazer commit e push somente após aprovação.

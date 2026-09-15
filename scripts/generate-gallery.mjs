@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 
 const PHOTO_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
@@ -22,6 +23,8 @@ const sortAscending = (a, b) => {
   if (na !== nb) return na - nb;
   return a.localeCompare(b, 'pt', { numeric: true });
 };
+
+const contentHash = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 12);
 
 const listFiles = (dir, exts) => {
   if (!existsSync(dir)) return [];
@@ -54,21 +57,18 @@ const durationOf = (file) => {
 };
 
 const extractCover = (file, base) => {
+  const videoPath = join(videoDir, file);
+  const videoHash = contentHash(videoPath);
   const manual = [...PHOTO_EXTS]
     .map((e) => join(videoDir, `${base}${e}`))
     .find((p) => existsSync(p));
   if (manual) {
-    const v = statSync(manual).mtimeMs;
-    return `/galeria/videos/${basename(manual)}?v=${v}`;
+    return `/galeria/videos/${basename(manual)}?v=${contentHash(manual)}`;
   }
   if (!hasFfmpeg()) return null;
 
-  const videoPath = join(videoDir, file);
   const outPath = join(coverDir, `${base}.jpg`);
-  if (existsSync(outPath)) {
-    const isFresh = statSync(videoPath).mtimeMs <= statSync(outPath).mtimeMs;
-    if (isFresh) return `/galeria/videos/covers/${base}.jpg?v=${statSync(outPath).mtimeMs}`;
-  }
+  if (existsSync(outPath)) return `/galeria/videos/covers/${base}.jpg?v=${videoHash}`;
 
   const coverTimes = {};
   const timesFile = join(videoDir, '.cover-times.json');
@@ -86,7 +86,7 @@ const extractCover = (file, base) => {
       ['-y', '-ss', String(wanted), '-i', videoPath, '-frames:v', '1', '-q:v', '2', outPath],
       { stdio: 'pipe' },
     );
-    return `/galeria/videos/covers/${base}.jpg?v=${statSync(outPath).mtimeMs}`;
+    return `/galeria/videos/covers/${base}.jpg?v=${videoHash}`;
   } catch {
     return null;
   }
@@ -116,7 +116,7 @@ const photoItems = photos.map((file, i) => {
   return {
     id: `foto-${i + 1}`,
     type: 'foto',
-    src: `/galeria/fotos/${file}?v=${statSync(join(fotoDir, file)).mtimeMs}`,
+    src: `/galeria/fotos/${file}?v=${contentHash(join(fotoDir, file))}`,
     alt: subtitle || base,
     title: subtitle || base,
     ...(subtitle ? { subtitle } : {}),
@@ -131,7 +131,7 @@ const videoItems = videos.map((file, i) => {
   return {
     id: `video-${i + 1}`,
     type: 'video',
-    videoUrl: `/galeria/videos/${file}?v=${statSync(join(videoDir, file)).mtimeMs}`,
+    videoUrl: `/galeria/videos/${file}?v=${contentHash(join(videoDir, file))}`,
     ...(poster ? { poster } : {}),
     alt: subtitle || base,
     title: subtitle || base,

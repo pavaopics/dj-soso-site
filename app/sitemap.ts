@@ -1,2 +1,2 @@
 import type { MetadataRoute } from 'next';
-export default function sitemap():MetadataRoute.Sitemap{return[{url:'https://dj-soso-official.bruno-pavao.chatgpt.site',lastModified:new Date(),changeFrequency:'monthly',priority:1}]}
+export default function sitemap():MetadataRoute.Sitemap{return[{url:'https://djsoso.com.br',lastModified:new Date(),changeFrequency:'monthly',priority:1},{url:'https://djsoso.com.br/presskit',lastModified:new Date(),changeFrequency:'monthly',priority:.7}]}

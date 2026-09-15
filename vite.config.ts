@@ -2,7 +2,7 @@ import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
-import hostingConfig from './.openai/hosting.json';
+import hostingConfig from './.openai/hosting.json' with { type: 'json' };
 import { adminApiPlugin } from './scripts/admin-api.mjs';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -16,10 +16,6 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localBindingConfig = {
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
-  vars: {
-    CONTENT_SOURCE: process.env.CONTENT_SOURCE ?? 'local',
-    R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL ?? 'https://media.djsoso.com.br',
-  },
   d1_databases: d1
     ? [
         {
