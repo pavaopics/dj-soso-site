@@ -54,7 +54,6 @@ const durationOf = (file) => {
 };
 
 const extractCover = (file, base) => {
-  if (!hasFfmpeg()) return null;
   const manual = [...PHOTO_EXTS]
     .map((e) => join(videoDir, `${base}${e}`))
     .find((p) => existsSync(p));
@@ -62,6 +61,7 @@ const extractCover = (file, base) => {
     const v = statSync(manual).mtimeMs;
     return `/galeria/videos/${basename(manual)}?v=${v}`;
   }
+  if (!hasFfmpeg()) return null;
 
   const videoPath = join(videoDir, file);
   const outPath = join(coverDir, `${base}.jpg`);
@@ -104,7 +104,11 @@ if (existsSync(descriptionsFile)) {
     descriptions = {};
   }
 }
-const descriptionOf = (folder, file) => descriptions[`${folder}/${file}`];
+const descriptionOf = (folder, file) => {
+  const key = `${folder}/${file}`;
+  const storedKey = Object.keys(descriptions).find(path => path.toLowerCase() === key.toLowerCase());
+  return descriptions[key] ?? (storedKey ? descriptions[storedKey] : undefined);
+};
 
 const photoItems = photos.map((file, i) => {
   const base = basename(file, extname(file));
@@ -113,7 +117,7 @@ const photoItems = photos.map((file, i) => {
     id: `foto-${i + 1}`,
     type: 'foto',
     src: `/galeria/fotos/${file}?v=${statSync(join(fotoDir, file)).mtimeMs}`,
-    alt: base,
+    alt: subtitle || base,
     title: subtitle || base,
     ...(subtitle ? { subtitle } : {}),
     aspectRatio: '3/4',
@@ -129,7 +133,7 @@ const videoItems = videos.map((file, i) => {
     type: 'video',
     videoUrl: `/galeria/videos/${file}?v=${statSync(join(videoDir, file)).mtimeMs}`,
     ...(poster ? { poster } : {}),
-    alt: base,
+    alt: subtitle || base,
     title: subtitle || base,
     ...(subtitle ? { subtitle } : {}),
     aspectRatio: '9/16',

@@ -1,0 +1,87 @@
+/* Full-width chapters keep each subject distinct while sharing one layout. */
+.sx-chapter {
+  position: relative;
+  background: var(--sx-section-bg);
+  border-top: 1px solid color-mix(in srgb, var(--sx-gold) 35%, transparent);
+  border-bottom: 0;
+}
+.sx-chapter::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sx-gold), color-mix(in srgb, var(--sx-gold) 20%, transparent) 65%, transparent);
+  pointer-events: none;
+}
+.sx-chapter > .sx-section { padding-block: clamp(72px, 8vw, 112px); }
+.sx-chapter .sx-section-head { margin-bottom: 44px; }
+.sx-chapter .sx-section-head .sx-eyebrow,
+.sx-summary-copy > .sx-eyebrow,
+.sx-brand-layout > div > .sx-eyebrow,
+.sx-contact > .sx-shell > .sx-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 13px;
+  border: 1px solid color-mix(in srgb, var(--sx-gold) 35%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sx-gold) 7%, transparent);
+}
+.sx-chapter--summary { --sx-section-bg: #211e17; --sx-gold: #dfc181; }
+.sx-chapter--videos { --sx-section-bg: #11181c; --sx-gold: #a6cedd; }
+.sx-chapter--events { --sx-section-bg: #28221e; --sx-gold: #edc184; }
+.sx-chapter--about { --sx-section-bg: #142824; --sx-gold: #9bd6c6; }
+.sx-chapter--gallery { --sx-section-bg: #141923; --sx-gold: #b0c9ec; }
+.sx-chapter--brands { --sx-section-bg: #2a2134; --sx-gold: #cdb5ef; }
+.sx-chapter--equipment { --sx-section-bg: #14252c; --sx-gold: #a0d4e2; }
+.sx-chapter--contact { --sx-section-bg: #eee5d6; --sx-gold: #735735; }
+.sx-chapter--summary .sx-summary-copy h2 { margin-block: 24px; }
+.sx-chapter--about .sx-about .sx-body-lead { margin-top: 0; }
+.sx-chapter--about .sx-photo-label { border-radius: 4px; }
+.sx-chapter--brands .sx-brand-art > span { border-left: 3px solid var(--sx-gold); }
+.sx-chapter--brands .sx-button:hover { background: #dfcaf8; }
+.sx-chapter--equipment .sx-button:hover { background: #c0e5ef; }
+
+/* Each contract format has a named color, icon, and matching action. */
+.sx-format[data-format='lounge'] { --sx-gold: #edc184; --format-bg: #372c20; }
+.sx-format[data-format='events'] { --sx-gold: #f4aaa0; --format-bg: #392629; }
+.sx-format[data-format='brandFormat'] { --sx-gold: #cdb5ef; --format-bg: #30273e; }
+.sx-chapter .sx-format {
+  padding: 20px;
+  background: var(--format-bg);
+  border: 1px solid color-mix(in srgb, var(--sx-gold) 35%, transparent);
+  border-top: 4px solid var(--sx-gold);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px #0002;
+}
+.sx-chapter .sx-format-image { border-radius: 9px; }
+.sx-chapter .sx-format-image > span { background: var(--sx-gold); color: #171713; font-weight: 700; }
+.sx-chapter .sx-format > .sx-eyebrow { display: flex; align-items: center; gap: 9px; line-height: 1.6; }
+.sx-chapter .sx-format > .sx-eyebrow svg { flex-shrink: 0; }
+.sx-chapter .sx-format h3 { color: var(--sx-gold); line-height: 1.2; margin-block: 12px 16px; }
+.sx-chapter .sx-format > p:not(.sx-eyebrow) { color: #e0dcd7; }
+.sx-chapter .sx-format > small { line-height: 1.7; margin-block: 20px 24px; }
+.sx-chapter .sx-format > a.sx-format-cta { color: #171713; }
+.sx-chapter .sx-format > a.sx-format-cta:hover { background: color-mix(in srgb, var(--sx-gold) 80%, white); }
+.sx-chapter a:focus-visible,
+.sx-chapter button:focus-visible,
+.sx-chapter summary:focus-visible { outline: 2px solid var(--sx-gold); outline-offset: 4px; }
+.sx-chapter .sx-repertoire { padding: 24px; border: 1px solid #ffffff24; border-radius: 12px; background: #15141166; }
+
+/* Supporting services and FAQ get their own clearly bounded panels. */
+.sx-chapter--equipment .sx-setup-grid { gap: 20px; border: 0; margin-bottom: 32px; }
+.sx-chapter--equipment .sx-setup-grid article { padding: 26px; border: 1px solid #a0d4e233; border-radius: 12px; background: #1c313a; }
+.sx-chapter--equipment .sx-setup-grid article > span { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #a0d4e219; }
+.sx-chapter--equipment .sx-setup-grid p { color: #c0cdd0; }
+.sx-chapter--contact .sx-faq { padding: clamp(24px, 4vw, 44px); border: 1px solid #79603940; border-radius: 16px; background: #e3d9c9; }
+.sx-chapter--contact .sx-kit { border: 1px solid #79603930; }
+
+@media (max-width: 767px) {
+  .sx-chapter > .sx-section { padding-block: 64px; }
+  .sx-chapter .sx-section-head { margin-bottom: 32px; }
+  .sx-chapter .sx-format-grid { gap: 24px; }
+  .sx-chapter .sx-format { padding: 18px; }
+  .sx-chapter .sx-repertoire { padding: 20px; }
+  .sx-chapter--equipment .sx-setup-grid { gap: 14px; }
+  .sx-chapter--equipment .sx-setup-grid article { padding: 22px; }
+}

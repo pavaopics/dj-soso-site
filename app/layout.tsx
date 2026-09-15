@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next';
+import { site } from '@/data/site';
 import './globals.css';
-export const metadata:Metadata={metadataBase:new URL('https://dj-soso-official.bruno-pavao.chatgpt.site'),title:'DJ Sosô | Site Oficial',description:'DJ Sosô, amante de música e exploradora de 9 anos de mesas, sintetizadores, loops e som.',alternates:{canonical:'/'},openGraph:{title:'DJ Sosô | Site Oficial',description:'A música começou como brincadeira. Agora ela está descobrindo mesas, sintetizadores, loops e som.',type:'website',locale:'pt_BR',images:[{url:'/og.png',width:1200,height:630,alt:'DJ Sosô, apenas começando.'}]},twitter:{card:'summary_large_image',title:'DJ Sosô | Site Oficial',description:'A música começou como brincadeira. Agora ela está descobrindo mesas, sintetizadores, loops e som.',images:['/og.png']}};
+import './showcase.css';
+import './sections.css';
+export const metadata:Metadata={metadataBase:new URL('https://dj-soso-official.bruno-pavao.chatgpt.site'),title:'DJ Sosô | Eventos, Sunsets & Marcas',description:site.description,alternates:{canonical:'/'},openGraph:{title:'DJ SOSÔ — Música para conectar pessoas',description:'Conheça a Sofia, veja os vídeos e converse com nossa equipe sobre eventos e projetos com marcas.',type:'website',locale:'pt_BR',images:[{url:'/soso-social.jpg',width:1200,height:630,alt:'DJ Sosô — 9 anos, personalidade de sobra. Eventos, sunsets e marcas.'}]},twitter:{card:'summary_large_image',title:'DJ SOSÔ — Música para conectar pessoas',description:site.description,images:['/soso-social.jpg']}};
 export const viewport:Viewport={width:'device-width',initialScale:1,themeColor:'#111210'};
 export default function RootLayout({children}:Readonly<{children:React.ReactNode}>){return <html lang="pt-BR"><body>{children}</body></html>}

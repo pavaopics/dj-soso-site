@@ -1,8 +1,9 @@
 /* eslint-disable no-html-link-for-pages, next/no-img-element, jsx-a11y/media-has-caption */
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, Check, Film, Image as ImageIcon, Lock, LogOut, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
+import { ArrowUpRight, Check, Film, Image as ImageIcon, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
 import type { MediaItem } from '@/data/content';
+import type { SectionImageConfig, SectionImageKey, SectionImages } from '@/data/section-images';
 
 const DEFAULT_LIMIT = 120;
 
@@ -23,17 +24,43 @@ const formatSize = (bytes: number) => {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
+// Runs entirely in the browser; only the smaller result is uploaded.
+async function compressPhoto(file: File): Promise<File> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    throw new Error('Para otimizar a foto, escolha um arquivo JPG, PNG ou WebP.');
+  }
+  const image = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const canvas = document.createElement('canvas');
+  try {
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Não foi possível iniciar o compressor local.');
+    ctx.drawImage(image, 0, 0);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.92));
+    if (!blob || blob.type !== 'image/webp') throw new Error('Este navegador não suporta compressão WebP.');
+    if (blob.size >= file.size) return file;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.webp`, { type: blob.type });
+  } finally {
+    image.close();
+    canvas.width = canvas.height = 0;
+  }
+}
+
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  const [pass, setPass] = useState('');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [apiOk, setApiOk] = useState<boolean | null>(null);
   const [editing, setEditing] = useState<MediaItem | null>(null);
+  const [removing, setRemoving] = useState<MediaItem | null>(null);
+  const [removeError, setRemoveError] = useState('');
+  const [removeNotice, setRemoveNotice] = useState('');
+  const [sectionRevision, setSectionRevision] = useState(0);
 
   const [photo, setPhoto] = useState({ file: null as File | null, num: '', desc: '' });
+  const [photoResult, setPhotoResult] = useState('');
   const [vid, setVid] = useState({ file: null as File | null, num: '', desc: '' });
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [coverDone, setCoverDone] = useState(false);
@@ -53,14 +80,19 @@ export default function AdminPage() {
       const j = (await r.json()) as { items?: MediaItem[] };
       setItems(j.items || []);
       setApiOk(true);
+      return true;
     } catch {
       setApiOk(false);
+      return false;
     }
   };
 
   useEffect(() => {
-    if (authed) setTimeout(refresh, 0);
-  }, [authed]);
+    const timer = setTimeout(refresh, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => () => { if (videoUrl) URL.revokeObjectURL(videoUrl); }, [videoUrl]);
 
   const photos = items.filter((i) => i.type === 'foto');
   const videos = items.filter((i) => i.type === 'video');
@@ -69,19 +101,20 @@ export default function AdminPage() {
 
   const baseName = (numRaw: string, file: File) => {
     const i = file.name.lastIndexOf('.');
-    const ext = i > 0 ? file.name.slice(i + 1) : 'bin';
+    const ext = i > 0 ? file.name.slice(i + 1).toLowerCase() : 'bin';
     const base = slugify(numRaw) || slugify(file.name.slice(0, i > 0 ? i : file.name.length)) || 'midia';
     return `${base}.${ext}`;
   };
 
   const expandDesc = (label: string, fallback: string) => {
+    if (fallback.trim()) return fallback.trim();
     const t = label.trim();
     if (t && !/^\d+$/.test(t)) return t;
     return fallback;
   };
 
   const uploadFile = async (folder: 'fotos' | 'videos', file: File, name: string, description: string) => {
-    const r = await fetch(`/api/admin/save?path=${folder}/${name}`, { method: 'POST', body: file });
+    const r = await fetch(`/api/admin/save?path=${encodeURIComponent(`${folder}/${name}`)}`, { method: 'POST', body: file });
     if (!r.ok) {
       let err = 'falha no upload';
       try {
@@ -102,11 +135,16 @@ export default function AdminPage() {
     if (!photo.file) return;
     const file = photo.file;
     setBusy(true);
-    setMsg('');
+    setMsg('Otimizando a foto localmente…');
+    setPhotoResult('');
     try {
-      await uploadFile('fotos', file, baseName(photo.num, file), expandDesc(photo.num, photo.desc));
+      const optimized = await compressPhoto(file);
+      setMsg('Salvando a foto otimizada…');
+      await uploadFile('fotos', optimized, baseName(photo.num, optimized), expandDesc(photo.num, photo.desc));
       await refresh();
       setPhoto({ file: null, num: '', desc: '' });
+      const saved = Math.round((1 - optimized.size / file.size) * 100);
+      setPhotoResult(`${formatSize(file.size)} → ${formatSize(optimized.size)} (${saved}% menor). Salva em public/galeria/fotos/${baseName(photo.num, optimized)}${optimized === file ? ' — o original já era menor e foi mantido.' : '.'}`);
       setMsg('Foto enviada!');
     } catch (e) {
       setMsg(`Erro: ${e instanceof Error ? e.message : String(e)}`);
@@ -124,10 +162,7 @@ export default function AdminPage() {
       const name = baseName(vid.num, file);
       await uploadFile('videos', file, name, expandDesc(vid.num, vid.desc));
       setUploadedName(name);
-      setVideoUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
+      setVideoUrl(URL.createObjectURL(file));
       setCoverDone(false);
       await refresh();
       setVid({ file: null, num: '', desc: '' });
@@ -187,62 +222,25 @@ export default function AdminPage() {
     const raw = item.type === 'foto' ? item.src || '' : item.videoUrl || '';
     const path = cleanPath(raw);
     if (!path) return;
-    if (!confirm(`Remover "${item.alt}" e sua descrição?`)) return;
     setBusy(true);
-    setMsg('');
+    setRemoveError('');
+    setRemoveNotice('');
     try {
       const r = await fetch(`/api/admin/remove?path=${encodeURIComponent(path)}`, { method: 'POST' });
-      if (!r.ok) {
-        const j = (await r.json()) as { error?: string };
-        throw new Error(j.error || 'falha ao remover');
-      }
+      const data = (await r.json()) as { error?: string; preservedSections?: string[] };
+      if (!r.ok) throw new Error(data.error || 'falha ao remover');
       if (editing?.id === item.id) setEditing(null);
-      await refresh();
-      setMsg('Removido.');
+      setItems(current => current.filter(media => cleanPath(media.src || media.videoUrl || '') !== path));
+      setRemoving(null);
+      if (data.preservedSections?.length) setSectionRevision(current => current + 1);
+      const refreshed = await refresh();
+      setRemoveNotice(`"${item.alt}" removido da galeria.${data.preservedSections?.length ? ` Uma cópia continua nas seções: ${data.preservedSections.join(', ')}.` : ''}${refreshed ? '' : ' Não foi possível atualizar o índice do site; clique em atualizar para tentar novamente.'}`);
     } catch (e) {
-      setMsg(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+      setRemoveError(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setBusy(false);
     }
   };
-
-  const logout = () => {
-    setAuthed(false);
-    setPass('');
-    setItems([]);
-    setEditing(null);
-    setCoverDone(false);
-    setVideoUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-  };
-
-  if (!authed) {
-    return (
-      <div className="adm">
-        <style>{`${admCss}`}</style>
-        <div className="adm-login">
-          <div className="adm-card">
-            <h1>Área Admin</h1>
-            <p className="adm-hint">Acesso restrito a quem administra o site da DJ Sosô.</p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setAuthed(true);
-              }}
-              className="adm-row"
-            >
-              <input className="adm-input" value={pass} onChange={(e) => setPass(e.target.value)} type="password" placeholder="Senha" />
-              <button className="adm-btn adm-btn--dark">Entrar <Lock size={15} /></button>
-            </form>
-            <p className="adm-note">Senha ainda não configurada: qualquer texto entra por enquanto.</p>
-            <a className="adm-back" href="/"><ArrowLeft size={13} /> voltar ao site</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="adm adm--wide">
@@ -251,7 +249,7 @@ export default function AdminPage() {
       <header className="adm-top">
         <div>
           <h1 className="adm-title">Painel · DJ SOSÔ</h1>
-          <p className="adm-sub">{photoCount} fotos · {videoCount} vídeos</p>
+          <p className="adm-sub">{photoCount} fotos · {videoCount} vídeos · acesso sem senha por enquanto</p>
         </div>
         <div className="adm-tools">
           {apiOk === false && <span className="adm-warn">API local indisponível (use o <code>npm run dev</code>)</span>}
@@ -261,42 +259,49 @@ export default function AdminPage() {
             <span>caracteres</span>
           </label>
           <button className="adm-btn adm-btn--ghost" onClick={() => void refresh()} disabled={busy}><RefreshCw size={14} /> atualizar</button>
-          <button className="adm-btn adm-btn--ghost" onClick={logout} disabled={busy}><LogOut size={14} /> sair</button>
           <a className="adm-back" href="/">ver site <ArrowUpRight size={13} /></a>
         </div>
       </header>
 
       {msg && (
-        <div className="adm-msg">
+        <output className="adm-msg">
           <span>{msg}</span>
           <button className="adm-close" onClick={() => setMsg('')} aria-label="Fechar aviso"><X size={13} /></button>
-        </div>
+        </output>
       )}
 
-      <section className="adm-grid">
+      <nav className="adm-tabs" aria-label="Seções do painel">
+        <a className="adm-btn adm-btn--ghost" href="#enviar">Enviar fotos e vídeos</a>
+        <a className="adm-btn adm-btn--ghost" href="#imagens-secoes">Imagens das seções</a>
+        <a className="adm-btn adm-btn--ghost" href="#midia-publicada">Mídia e descrições</a>
+      </nav>
+
+      <section className="adm-grid" id="enviar">
         <div className="adm-card">
           <h2>Enviar foto</h2>
           <label className="adm-drop">
-            <input type="file" accept="image/*" onChange={(e) => setPhoto({ ...photo, file: e.target.files?.[0] || null })} />
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(e) => setPhoto({ ...photo, file: e.target.files?.[0] || null })} />
             <ImageIcon size={22} />
-            <span>{photo.file ? photo.file.name : 'Escolher imagem'} <small>{photo.file ? formatSize(photo.file.size) : 'jpg, png, webp, gif'}</small></span>
+            <span>{photo.file ? photo.file.name : 'Escolher imagem'} <small>{photo.file ? formatSize(photo.file.size) : 'jpg, png, webp'}</small></span>
           </label>
-          <input className="adm-input" value={photo.num} onChange={(e) => setPhoto({ ...photo, num: e.target.value })} placeholder="Nº da ordem ou nome (opcional, vira descrição)" inputMode="text" />
+          <input className="adm-input" value={photo.num} onChange={(e) => setPhoto({ ...photo, num: e.target.value })} placeholder="Nº da ordem ou nome do arquivo (opcional)" inputMode="text" />
           <label className="adm-field">
             <textarea className="adm-textarea" maxLength={limit} value={photo.desc} onChange={(e) => setPhoto({ ...photo, desc: e.target.value })} placeholder="Descrição (opcional)" />
             <span className="adm-count">{photo.desc.length} / {limit}</span>
           </label>
-          <button className="adm-btn adm-btn--dark" onClick={() => void submitPhoto()} disabled={busy || !photo.file}>{busy ? 'Enviando…' : 'Enviar foto'} <ArrowUpRight size={14} /></button>
+          <p className="adm-note">Compressão local automática em WebP de alta qualidade (92%), mantendo resolução e transparência. Há recompressão com perdas, priorizando a qualidade visual. Se o resultado ficar maior, mantemos o original.</p>
+          <button className="adm-btn adm-btn--dark" onClick={() => void submitPhoto()} disabled={busy || !photo.file}>{busy ? 'Processando…' : 'Otimizar e enviar foto'} <ArrowUpRight size={14} /></button>
+          {photoResult && <output className="adm-note">{photoResult}</output>}
         </div>
 
         <div className="adm-card">
           <h2>Enviar vídeo</h2>
           <label className="adm-drop">
-            <input type="file" accept="video/*" onChange={(e) => setVid({ ...vid, file: e.target.files?.[0] || null })} />
+            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,.m4v" disabled={busy} onChange={(e) => setVid({ ...vid, file: e.target.files?.[0] || null })} />
             <Film size={22} />
             <span>{vid.file ? vid.file.name : 'Escolher vídeo'} <small>{vid.file ? formatSize(vid.file.size) : 'mp4, webm, mov, m4v'}</small></span>
           </label>
-          <input className="adm-input" value={vid.num} onChange={(e) => setVid({ ...vid, num: e.target.value })} placeholder="Nº da ordem ou nome (opcional, vira descrição)" inputMode="text" />
+          <input className="adm-input" value={vid.num} onChange={(e) => setVid({ ...vid, num: e.target.value })} placeholder="Nº da ordem ou nome do arquivo (opcional)" inputMode="text" />
           <label className="adm-field">
             <textarea className="adm-textarea" maxLength={limit} value={vid.desc} onChange={(e) => setVid({ ...vid, desc: e.target.value })} placeholder="Descrição (opcional)" />
             <span className="adm-count">{vid.desc.length} / {limit}</span>
@@ -316,8 +321,11 @@ export default function AdminPage() {
         </section>
       )}
 
-      <section className="adm-card adm-card--full">
+      <SectionImagesPanel photos={photos} revision={sectionRevision} />
+
+      <section className="adm-card adm-card--full" id="midia-publicada">
         <h2>Mídia publicada <span className="adm-total">{items.length}</span></h2>
+        {removeNotice && <output className="adm-msg">{removeNotice}</output>}
         <div className="adm-list">
           {items.map((i) => (
             <div className="adm-item" key={i.id}>
@@ -335,7 +343,16 @@ export default function AdminPage() {
                 <p className="adm-item-sub">{i.subtitle || 'sem descrição'}</p>
               </div>
               <button className="adm-btn adm-btn--ghost" onClick={() => setEditing(i)} disabled={busy}><Pencil size={14} /> editar</button>
-              <button className="adm-btn adm-btn--danger" onClick={() => void removeItem(i)} disabled={busy}><Trash2 size={14} /> remover</button>
+              <button className="adm-btn adm-btn--danger" onClick={() => { setRemoving(i); setRemoveError(''); setRemoveNotice(''); }} disabled={busy}><Trash2 size={14} /> remover</button>
+              {removing?.id === i.id && <div className="adm-remove-confirm">
+                <p>Remover &ldquo;{i.alt}&rdquo; da galeria e apagar sua descrição?</p>
+                {i.type === 'foto' && <p className="adm-note">Se esta foto estiver em uma seção, uma cópia será mantida nela.</p>}
+                <div className="adm-row">
+                  <button className="adm-btn adm-btn--danger" onClick={() => void removeItem(i)} disabled={busy}>{busy ? 'Removendo…' : 'Confirmar remoção'}</button>
+                  <button className="adm-btn adm-btn--ghost" onClick={() => { setRemoving(null); setRemoveError(''); }} disabled={busy}>Cancelar</button>
+                </div>
+                {removeError && <p className="adm-err" role="alert">{removeError}</p>}
+              </div>}
             </div>
           ))}
           {items.length === 0 && <p className="adm-empty">Nenhuma mídia ainda. Envie a primeira foto ou vídeo acima.</p>}
@@ -365,6 +382,135 @@ export default function AdminPage() {
       )}
     </div>
   );
+}
+
+function SectionImagesPanel({ photos, revision }: { photos: MediaItem[]; revision: number }) {
+  const [images, setImages] = useState<SectionImages | null>(null);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    setError('');
+    try {
+      const response = await fetch('/api/admin/sections', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Para editar as seções, abra o site local com npm run dev.');
+      const data = await response.json() as { images: SectionImages };
+      setImages(data.images);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(load, 0);
+    return () => clearTimeout(timer);
+  }, [revision]);
+
+  return <section className="adm-sections" id="imagens-secoes">
+    <h2>Imagens das seções</h2>
+    <p className="adm-hint">Troque cada foto por uma nova imagem otimizada ou escolha uma da galeria. Edite a descrição e o enquadramento, depois salve a seção.</p>
+    <p className="adm-note">Os arquivos e as escolhas ficam salvos neste projeto local. As imagens do press kit online são editáveis aqui; o PDF já gerado precisa ser exportado novamente após alterações.</p>
+    {error && <p className="adm-err" role="alert">{error} <button className="adm-btn adm-btn--ghost" onClick={() => void load()}>Tentar novamente</button></p>}
+    {!images && !error && <output>Carregando imagens…</output>}
+    <div className="adm-grid">
+      {images && (Object.entries(images) as [SectionImageKey, SectionImageConfig][]).map(([id, image]) => <SectionImageEditor key={id} id={id} image={image} photos={photos} onSaved={updated => setImages(previous => previous ? { ...previous, [id]: updated } : previous)} />)}
+    </div>
+  </section>;
+}
+
+function SectionImageEditor({ id, image, photos, onSaved }: {
+  id: SectionImageKey;
+  image: SectionImageConfig;
+  photos: MediaItem[];
+  onSaved: (image: SectionImageConfig) => void;
+}) {
+  const [sourceOverride, setSrc] = useState<string | null>(null);
+  const src = sourceOverride ?? image.src;
+  const [alt, setAlt] = useState(image.alt);
+  const [position, setPosition] = useState(image.position);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  const save = async () => {
+    setBusy(true);
+    setError('');
+    setStatus(file ? 'Otimizando a foto localmente…' : 'Salvando…');
+    try {
+      let source = src;
+      let result = '';
+      if (file) {
+        const optimized = await compressPhoto(file);
+        const extension = optimized.name.split('.').pop()?.toLowerCase() || 'webp';
+        const name = `${id.toLowerCase()}-${crypto.randomUUID()}.${extension}`;
+        const upload = await fetch(`/api/admin/save?path=${encodeURIComponent(`secoes/${name}`)}`, { method: 'POST', body: optimized });
+        const data = await upload.json() as { error?: string };
+        if (!upload.ok) throw new Error(data.error || 'Não foi possível enviar a foto.');
+        source = `/galeria/secoes/${name}`;
+        result = ` ${formatSize(file.size)} → ${formatSize(optimized.size)}.`;
+        setSrc(source);
+        setFile(null);
+        if (fileInput.current) fileInput.current.value = '';
+      }
+      const response = await fetch('/api/admin/sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, src: source, alt, position }),
+      });
+      const data = await response.json() as { error?: string; images: SectionImages };
+      if (!response.ok) throw new Error(data.error || 'Não foi possível salvar a seção.');
+      onSaved(data.images[id]);
+      setSrc(null);
+      setStatus(`Seção salva!${result}`);
+    } catch (e) {
+      setStatus('');
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <article className="adm-card adm-section-image" aria-labelledby={`${id}-title`}>
+    <h3 id={`${id}-title`}>{image.label}</h3>
+    <div className="adm-section-preview"><img src={file && preview ? preview : src} alt={alt || image.label} style={{ objectPosition: position }} loading="lazy" /></div>
+    <label className="adm-drop">
+      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event => {
+        const selected = event.target.files?.[0];
+        if (selected) { setFile(selected); setPreview(URL.createObjectURL(selected)); setAlt(''); setStatus(''); setError(''); }
+      }} />
+      <ImageIcon size={20} /><span>{file ? file.name : 'Enviar nova foto'}<small>JPG, PNG ou WebP · compressão automática</small></span>
+    </label>
+    <label className="adm-field" htmlFor={`${id}-gallery`}>Ou escolher da galeria</label>
+    <select id={`${id}-gallery`} className="adm-input" disabled={busy} value={file ? '' : src} onChange={event => {
+      const value = event.target.value;
+      if (!value) return;
+      setSrc(value); setFile(null); setStatus(''); setError('');
+      if (fileInput.current) fileInput.current.value = '';
+      const selected = photos.find(photo => photo.src === value);
+      setAlt(selected?.subtitle || selected?.alt || image.alt);
+    }}>
+      {file && <option value="">Nova foto selecionada</option>}
+      {!photos.some(photo => photo.src === src) && <option value={src}>Imagem atual / selecionada</option>}
+      {photos.filter(photo => photo.src).map(photo => <option key={photo.src} value={photo.src}>{photo.subtitle || photo.alt}</option>)}
+    </select>
+    <label className="adm-field" htmlFor={`${id}-description`}>Descrição da imagem (acessibilidade)</label>
+    <textarea id={`${id}-description`} className="adm-textarea" maxLength={500} value={alt} disabled={busy} onChange={event => setAlt(event.target.value)} placeholder="Descreva a foto desta seção" />
+    <label className="adm-field" htmlFor={`${id}-position`}>Enquadramento</label>
+    <select id={`${id}-position`} className="adm-input" value={position} disabled={busy} onChange={event => setPosition(event.target.value)}>
+      <option value="50% 0%">Priorizar o topo</option>
+      <option value="50% 25%">Topo intermediário</option>
+      <option value="50% 35%">Centro superior</option>
+      <option value="50% 50%">Centralizar</option>
+      <option value="50% 100%">Priorizar a parte de baixo</option>
+    </select>
+    <button className="adm-btn adm-btn--dark" onClick={() => void save()} disabled={busy || !alt.trim()}>{busy ? 'Salvando…' : 'Salvar seção'} <Check size={14} /></button>
+    {status && <output className="adm-note" aria-live="polite">{status}</output>}
+    {error && <p className="adm-err" role="alert">{error}</p>}
+  </article>;
 }
 
 function EditPanel({ item, limit, onClose, onSaved, onMsg }: {
@@ -484,6 +630,19 @@ function EditPanel({ item, limit, onClose, onSaved, onMsg }: {
 const admCss = `
 .adm{min-height:100svh;padding:24px;font-family:Arial,Helvetica,sans-serif;background:#111210;color:#efede7}
 .adm--wide{max-width:1000px;margin:0 auto}
+.adm *{box-sizing:border-box}
+.adm-tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.adm-sections{margin-block:32px;scroll-margin-top:24px}
+.adm-sections>h2{font-size:22px;margin:0 0 12px}
+.adm-sections>.adm-note{display:block;margin-bottom:20px}
+.adm-section-image{min-width:0}
+.adm-section-image h3{margin:0;font-size:15px}
+.adm-section-image .adm-field{font-size:12px;color:#aaa9a2}
+.adm-section-preview{aspect-ratio:4/3;background:#111210;border-radius:10px;overflow:hidden}
+.adm-section-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.adm-section-image .adm-drop{min-width:0}
+.adm-section-image output{color:#baf5cf}
+.adm-section-image .adm-btn{white-space:normal}
 .adm-login{min-height:80svh;display:grid;place-items:center}
 .adm-login .adm-card{width:min(420px,100%)}
 .adm-top{display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:16px;margin-bottom:20px}
@@ -520,7 +679,9 @@ const admCss = `
 .adm-warn{color:#ffb26b;font-size:12px}
 .adm-warn code{background:rgba(255,178,107,.15);border-radius:4px;padding:1px 5px}
 .adm-list{display:flex;flex-direction:column;gap:8px}
-.adm-item{display:flex;align-items:center;gap:12px;background:#111210;border:1px solid rgba(239,237,231,.1);border-radius:10px;padding:8px 12px}
+.adm-item{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#111210;border:1px solid rgba(239,237,231,.1);border-radius:10px;padding:8px 12px}
+.adm-remove-confirm{flex-basis:100%;display:flex;flex-direction:column;gap:12px;padding:12px 0;border-top:1px solid #ffffff20;font-size:13px}
+.adm-remove-confirm p{margin:0}
 .adm-thumb{width:46px;height:46px;border-radius:8px;overflow:hidden;background:#262;display:grid;place-items:center;flex:none}
 .adm-thumb img{width:100%;height:100%;object-fit:cover}
 .adm-item-info{flex:1;min-width:0}

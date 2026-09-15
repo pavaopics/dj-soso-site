@@ -1,54 +1,298 @@
 'use client';
+/* eslint-disable next/no-img-element, next/no-html-link-for-pages, jsx-a11y/media-has-caption */
+// Local WebP assets and music-performance clips use native media controls.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Menu, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Download, Megaphone, Menu, MessageCircle, Music2, PartyPopper, Sparkles, Sunset, X } from 'lucide-react';
 import type { MediaItem } from '@/data/content';
 import type { SiteConfig } from '@/data/site';
+import { biography, faq, formats, photoLabels, presentationCopy, whatsappLink } from '@/data/presentation';
 import { track } from '@/lib/analytics';
-type Props={site:SiteConfig;gallery:MediaItem[]};
-function Brand({compact=false}:{compact?:boolean}){return <a className={`brand ${compact?'brand--compact':''}`} href="#top" aria-label="DJ Sosô, voltar ao topo"><span>DJ</span><strong>SOSÔ</strong></a>}
-function MediaPlaceholder({label,index=0,className=''}:{label:string;index?:number;className?:string}){return <figure className={`media-placeholder media-placeholder--${index%6} ${className}`} aria-label={`${label}, aguardando mídia oficial`}><span className="media-mark">SÔ</span><span className="media-label">{label}<small>MÍDIA OFICIAL EM BREVE</small></span></figure>}
-const livePlayers:HTMLVideoElement[]=[];
-let queueOn=false;
-const pauseOthers=(keep:HTMLVideoElement)=>{for(const v of livePlayers)if(v!==keep&&!v.paused){try{v.pause()}catch{}}};
-const pauseAll=()=>{queueOn=false;for(const v of livePlayers){try{v.pause()}catch{}}};
-function VideoCard({item,index}:{item:MediaItem;index:number}){
-  const ref=useRef<HTMLVideoElement>(null),controls=useRef<HTMLDivElement>(null),[active,setActive]=useState(false),[playing,setPlaying]=useState(false),[vol,setVol]=useState(1),[muted,setMuted]=useState(false),[time,setTime]=useState(0),[dur,setDur]=useState(0),[showVol,setShowVol]=useState(false);
-  const autoPlay=async()=>{const v=ref.current;if(!v||!item.videoUrl||!v.paused)return;try{await v.play()}catch{if(!v.muted){v.muted=true;setMuted(true);try{await v.play()}catch{}}}};
-  useEffect(()=>{const el=ref.current;if(!item.videoUrl||!el)return;const register=()=>{if(!livePlayers.includes(el))livePlayers.push(el)};const unregister=()=>{const i=livePlayers.indexOf(el);if(i>-1)livePlayers.splice(i,1)};register();const load=new IntersectionObserver(([e])=>setActive(e.isIntersecting),{rootMargin:'300px'});const out=new IntersectionObserver(([e])=>{if(!e.isIntersecting&&ref.current){ref.current.pause();setPlaying(false)}},{threshold:0.001});const focus=new IntersectionObserver(([e])=>{if(e.isIntersecting){if(queueOn)autoPlay()}else{const v=ref.current;if(v){v.pause();setPlaying(false)}}},{threshold:.5});load.observe(el);out.observe(el);focus.observe(el);return()=>{load.disconnect();out.disconnect();focus.disconnect();unregister()}},[item.videoUrl]);
-  useEffect(()=>{const v=ref.current;if(v){v.volume=vol;v.muted=muted}},[vol,muted]);
-  useEffect(()=>{if(!showVol)return;const close=(e:MouseEvent)=>{if(controls.current&&!controls.current.contains(e.target as Node))setShowVol(false)};document.addEventListener('mousedown',close);return()=>document.removeEventListener('mousedown',close)},[showVol]);
-  const toggle=async()=>{const v=ref.current;if(!v||!item.videoUrl)return;if(v.paused){queueOn=true;try{await v.play();track('video_played',{id:item.id})}catch{}}else{v.pause();pauseAll();setPlaying(false)}};
-  const changeVol=(v:number)=>{const el=ref.current;if(el){el.muted=v===0;el.volume=v;setMuted(v===0);setVol(v)}};
-  const seek=(v:number)=>{const el=ref.current;if(el){el.currentTime=v;setTime(v)}};
-  const toggleMute=()=>{const v=ref.current;if(!v)return;const m=!v.muted;v.muted=m;setMuted(m);if(!m)v.volume=vol||1};
- return <article className="gallery-slide gallery-slide--video"><div className="video-frame">{item.videoUrl?<video ref={ref} src={active?item.videoUrl:undefined} poster={item.poster} preload="none" playsInline onPlay={(e)=>{const el=e.currentTarget;if(!livePlayers.includes(el))livePlayers.push(el);pauseOthers(el);setPlaying(true)}} onPause={()=>setPlaying(false)} onEnded={()=>{setPlaying(false);track('video_completed',{id:item.id})}}/>:<MediaPlaceholder label="VÍDEO" index={index}/>}<span className="video-count">{String(index+1).padStart(2,'0')}</span><button className="play-button" onClick={toggle} aria-label={item.videoUrl?`${playing?'Pausar':'Reproduzir'} ${item.title??item.alt}`:`Mídia em breve para ${item.title??item.alt}`} disabled={!item.videoUrl}>{playing?<Pause/>:<Play fill="currentColor"/>}</button>{item.videoUrl&&<div className="video-controls"><button className="video-vol-btn" onClick={toggleMute} aria-label={muted?'Ativar som':'Silenciar'}>{muted||vol===0?<VolumeX/>:<Volume2/>}</button><input className="video-vol-slider" type="range" min="0" max="1" step="0.01" value={muted?0:vol} onChange={(e)=>changeVol(Number(e.target.value))} aria-label="Volume"/></div>}</div>{(item.title||item.subtitle)&&<div className="video-copy">{item.title&&<h3>{item.title}</h3>}{item.subtitle&&<p>{item.subtitle}</p>}</div>}</article>;
-}
-function GalleryCarousel({items,onOpenPhoto}:{items:MediaItem[];onOpenPhoto:(id:string)=>void}){
- const trackRef=useRef<HTMLDivElement>(null),[canPrev,setCanPrev]=useState(false),[canNext,setCanNext]=useState(true),[active,setActive]=useState(0);
- const step=()=>{const el=trackRef.current;if(!el)return 1;const first=el.firstElementChild as HTMLElement|null;return first?first.offsetWidth+14:el.clientWidth||1};
- const sync=()=>{const el=trackRef.current;if(!el)return;setCanPrev(el.scrollLeft>6);setCanNext(el.scrollLeft+el.clientWidth<el.scrollWidth-6);setActive(Math.round(el.scrollLeft/step()))};
- const scrollBy=(dir:number)=>{const el=trackRef.current;if(el)el.scrollBy({left:dir*step(),behavior:'smooth'})};
- const scrollTo=(i:number)=>{const el=trackRef.current;if(!el)return;const slides=Array.from(el.querySelectorAll<HTMLElement>('.gallery-slide'));if(slides[i])el.scrollTo({left:slides[i].offsetLeft,behavior:'smooth'})};
- useEffect(()=>{const el=trackRef.current;if(!el)return;const update=()=>{setCanPrev(el.scrollLeft>6);setCanNext(el.scrollLeft+el.clientWidth<el.scrollWidth-6);setActive(Math.round(el.scrollLeft/((el.firstElementChild as HTMLElement|null)?(el.firstElementChild as HTMLElement).offsetWidth+14:el.clientWidth||1)))};update();const ro=new ResizeObserver(update);ro.observe(el);window.addEventListener('resize',update);return()=>{ro.disconnect();window.removeEventListener('resize',update)}},[]);
- return <div className="gallery-carousel">
-  <div className="gallery-track" ref={trackRef} onScroll={sync}>{items.map((item,g)=>item.type==='video'?<VideoCard key={item.id} item={item} index={g}/>:<figure key={item.id} className="gallery-slide gallery-slide--foto"><button className="gallery-photo" onClick={()=>onOpenPhoto(item.id)} aria-label={`Abrir ${item.alt}`}>{item.src?<img src={item.src} alt={item.alt} loading="lazy"/>:<MediaPlaceholder label="FOTO" index={g}/>}<span className="gallery-slide-index">{String(g+1).padStart(2,'0')}</span></button>{(item.title||item.subtitle)&&<figcaption className="video-copy">{item.title&&<h3>{item.title}</h3>}{item.subtitle&&<p>{item.subtitle}</p>}</figcaption>}</figure>)}</div>
-  <button className="gallery-arrow gallery-arrow--prev" onClick={()=>scrollBy(-1)} disabled={!canPrev} aria-label="Anterior"><ArrowLeft/></button>
-  <button className="gallery-arrow gallery-arrow--next" onClick={()=>scrollBy(1)} disabled={!canNext} aria-label="Próxima"><ArrowRight/></button>
-  <div className="gallery-dots">{items.map((item,i)=><button key={item.id} className={`gallery-dot${i===active?' is-active':''}`} onClick={()=>scrollTo(i)} aria-label={`Ir para ${i+1}`}/>)}</div>
- </div>;
-}
-function Lightbox({items,index,onClose,onChange}:{items:MediaItem[];index:number;onClose:()=>void;onChange:(i:number)=>void}){
- const start=useRef(0);useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose();if(e.key==='ArrowRight')onChange((index+1)%items.length);if(e.key==='ArrowLeft')onChange((index-1+items.length)%items.length)};window.addEventListener('keydown',key);document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',key);document.body.style.overflow=''}},[index,items.length,onChange,onClose]);const item=items[index];
- return <dialog open className="lightbox" aria-label="Visualizador de imagens da galeria" onTouchStart={e=>start.current=e.touches[0].clientX} onTouchEnd={e=>{const dx=e.changedTouches[0].clientX-start.current;if(Math.abs(dx)>45)onChange((index+(dx<0?1:-1)+items.length)%items.length)}}><button className="lightbox-close" onClick={onClose} aria-label="Fechar galeria"><X/></button><button className="lightbox-prev" onClick={()=>onChange((index-1+items.length)%items.length)} aria-label="Imagem anterior"><ArrowLeft/></button><div className="lightbox-media">{item.src?<img src={item.src} alt={item.alt} className="lightbox-img"/>:<MediaPlaceholder label="FOTO" index={index}/>}<p>{String(index+1).padStart(2,'0')} / {items.length}</p></div><button className="lightbox-next" onClick={()=>onChange((index+1)%items.length)} aria-label="Próxima imagem"><ArrowRight/></button></dialog>;
-}
-export function WhatsAppGlyph({w=20}:{w?:number}){return <svg width={w} height={w} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.52 3.449A11.945 11.945 0 0 0 12.105 0C5.507 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413ZM12.12 21.764h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>}
+import { SectionImage } from '@/components/section-image';
+import { sectionImages } from '@/data/section-images';
 
-export function SiteExperience({site,gallery}:Props){const[menu,setMenu]=useState(false),[lightbox,setLightbox]=useState<number|null>(null),[fab,setFab]=useState(false);useEffect(()=>{const onScroll=()=>{const r=document.getElementById('contact')?.getBoundingClientRect();setFab(window.scrollY>window.innerHeight*.6&&(r?r.top>window.innerHeight*.7:true))};onScroll();window.addEventListener('scroll',onScroll,{passive:true});return()=>window.removeEventListener('scroll',onScroll)},[]);const photos=gallery.filter(m=>m.type==='foto');const photoIndex=new Map(photos.map((p,i)=>[p.id,i]));return <main id="top">
- <header className="header"><Brand compact/><nav className="desktop-nav" aria-label="Navegação principal">{site.navigation.map(i=><a key={i.href} href={i.href}>{i.label}</a>)}</nav><button className="menu-button" onClick={()=>setMenu(true)} aria-label="Abrir menu"><span>MENU</span><Menu/></button></header>
- {menu&&<div className="mobile-menu"><button onClick={()=>setMenu(false)} aria-label="Fechar menu"><X/></button><Brand/><nav>{site.navigation.map((i,n)=><a key={i.href} href={i.href} onClick={()=>setMenu(false)}><span>0{n+1}</span>{i.label}</a>)}</nav><p>{site.location}</p></div>}
- <section className="hero"><div className="hero-media"><img src="/dj-soso-hero.webp" alt="DJ Sosô usando fones de ouvido e jaqueta dourada" width="1024" height="1536" fetchPriority="high" /><div className="hero-stamp"><b>9</b><span>ANOS</span></div></div><div className="hero-kicker"><span>SP / BR</span></div><div className="hero-bottom"><p>9 anos.<br/>A nova geração<br/>que vai comandar as pistas.</p><p className="hero-sub">Sofia integra um seleto grupo de meninas brasileiras que chega à música cedo, pronta para fazer história ainda na infância.</p><div className="hero-actions"><a className="button button--light" href="#gallery" onClick={()=>track('hero_watch_clicked')}>VEJA SOSÔ TOCAR <Play/></a><a className="text-link" href="#contact">CONTATO <ArrowDown/></a></div></div></section>
- <section className="about section" id="about"><div className="section-index">01 / SOBRE</div><div className="about-title"><p>ESTA É</p><h2>SOSÔ</h2></div><figure className="about-media"><img src="/dj-soso-bio.webp" alt="DJ Sosô usando fones de ouvido e fazendo uma bolha de chiclete" width="1024" height="1536" loading="lazy" /></figure><div className="about-copy"><p className="lead">Sofia tem 9 anos.</p><p>A música começou como brincadeira.</p><p>Hoje ela está aprendendo como as músicas são construídas: mixagem, teclados, sintetizadores, loops, vocais, Ableton e tudo que puder colocar as mãos.</p><p>Ela ainda está no começo.</p><p className="accent-copy">E essa é exatamente a parte divertida.</p></div><div className="about-stamp">CURIOSA<br/>POR NATUREZA</div></section>
- <section className="gallery section" id="gallery"><div className="section-index">02 / GALERIA</div><div className="gallery-heading"><h2>GALERIA</h2></div>{gallery.length>0?<GalleryCarousel items={gallery} onOpenPhoto={(id)=>setLightbox(photoIndex.get(id)??0)}/>:null}</section>
- <section className="equip section" id="equipamentos"><div className="section-index">03 / EQUIPAMENTOS</div><div className="equip-title"><p>LOCAÇÃO DE</p><h2>EQUIPAMENTOS</h2></div><p className="equip-lead">Quer montar a estrutura do seu evento? A Sosô também fornece áudio e captura, com operação pela própria equipe.</p><div className="lease-grid"><div className="lease-col"><div className="lease-head">ÁUDIO &amp; PERFORMANCE</div><ul>{site.gear.audio.map(g=><li key={g}>{g}</li>)}</ul></div><div className="lease-col"><div className="lease-head">CAPTURA</div><ul>{site.gear.capture.map(g=><li key={g}>{g}</li>)}</ul></div></div><p className="equip-note">Locação avulsa ou incluída na contratação da DJ. Chame a gestão para montar a proposta.</p><a className="whatsapp-button" href={site.contact.whatsapp} onClick={()=>track('whatsapp_clicked')}>ORÇAR ESTRUTURA <ArrowUpRight/></a><div className="coverage"><span>COBERTURA FOTOGRÁFICA DO EVENTO</span><div className="coverage-item"><b>SHOW + EVENTO</b><p>Além do show, uma equipe de audiovisual profissional, com experiência em grandes eventos nacionais e internacionais, cobre o evento por inteiro.</p></div><div className="coverage-item"><b>DURAÇÃO A NEGOCIAR</b><p>Pacotes de 4h, 8h ou mais. Garantimos o registro do show e também o da festa.</p></div></div></section>
- <section className="booking section" id="contact"><div className="section-index">04 / CONTATO</div><div className="booking-title"><p>TOQUE COM</p><h2>SOSÔ</h2></div><div className="booking-copy"><p className="lead">Quer que a DJ Sosô toque no seu espaço ou evento?</p><div className="sheet"><div className="sheet-row rep"><span>REPERTÓRIO</span><ul>{site.repertoire.map(r=><li key={r}>{r}</li>)}</ul></div><div className="sheet-row"><span>BASE</span><p>{site.location}, com alcance nacional e internacional</p></div></div><div className="manager"><span>AGENDA &amp; GESTÃO</span><strong>{site.contact.manager}</strong><p>{site.contact.role}</p></div><div className="booking-actions booking-actions--center"><a className="whatsapp-button" href={site.contact.whatsapp} onClick={()=>track('whatsapp_clicked')}>WHATSAPP <ArrowUpRight/></a></div><small>Toda comunicação é feita por um adulto responsável.</small><div className="custom-set"><span>SETS PERSONALIZADOS</span><p>Quer um set feito com as músicas que você escolher? Possível, mas exige estudo. Combine com no mínimo 7 dias corridos de antecedência.</p></div><div className="coverage"><span>COBERTURA &amp; PRAZOS</span><div className="coverage-item"><b>200 KM POR TERRA</b><p>Agenda normal em São Paulo, capital e região.</p></div><div className="coverage-item"><b>GRANDES DISTÂNCIAS</b><p>Em viagem aérea, somente durante as férias escolares. Quanto maior a distância, maior a antecedência.</p></div></div></div></section>
- <footer><Brand/><div className="footer-contact"><p>{site.location}</p><p>AGENDA &amp; GESTÃO<br/>{site.contact.manager}</p><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a><a href={site.contact.whatsapp} onClick={()=>track('whatsapp_clicked')}>WHATSAPP <ArrowUpRight/></a></div><div className="footer-social">{(['instagram','tiktok'] as const).map(n=><a key={n} href={site.social[n]} onClick={()=>track(`${n}_clicked`)}>{n.toUpperCase()} <ArrowUpRight/></a>)}</div><p className="copyright">© {new Date().getFullYear()} DJ SOSÔ</p></footer><a className={`whatsapp-fab${fab?' is-visible':''}`} href={site.contact.whatsapp} onClick={()=>track('whatsapp_fab_clicked')} aria-label="Chamar a DJ Sosô no WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg><span>WHATSAPP</span></a>{lightbox!==null&&photos.length>0&&<Lightbox items={photos} index={lightbox} onClose={()=>setLightbox(null)} onChange={setLightbox}/>}</main>}
+type Props = { site: SiteConfig; gallery: MediaItem[] };
+const intro: MediaItem = { id: 'intro', type: 'video', videoUrl: '/media/soso-apresentacao.mp4?v=audio-normalizado-1', poster: sectionImages.hero.src, title: 'O melhor da Sosô em 35 segundos', subtitle: 'Cinco momentos, uma personalidade só.', alt: 'Seleção de momentos da DJ Sosô tocando', aspectRatio: '9/16' };
+const formatIcons = { lounge: Sunset, events: PartyPopper, brandFormat: Megaphone };
+
+function Brand() {
+  return <a className="sx-brand" href="#top" aria-label="DJ Sosô, início"><span>DJ</span> SOSÔ<span className="sx-brand-dot">●</span></a>;
+}
+
+function ContactLink({ site, label = 'Consultar disponibilidade', topic, source, light = false }: { site: SiteConfig; label?: string; topic?: string; source: string; light?: boolean }) {
+  return <a className={`sx-button ${light ? 'sx-button-light' : ''}`} href={whatsappLink(site.contact.whatsapp, topic)} onClick={() => track('whatsapp_clicked', { source })}><MessageCircle size={17} />{label}<ArrowUpRight size={17} /></a>;
+}
+
+function KitLink({ compact = false }: { compact?: boolean }) {
+  return <a className={compact ? 'sx-inline-link' : 'sx-button sx-button-outline'} href="/presskit-soso.pdf" download onClick={() => track('presskit_downloaded')}><Download size={17} />Baixar press kit{!compact && <span>PDF</span>}</a>;
+}
+
+function VideoCard({ item, index, managed = false, active = false }: { item: MediaItem; index: number; managed?: boolean; active?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || managed) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) video.pause();
+    }, { rootMargin: '120px' });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [managed]);
+  const title = item.title && !/^\d+$/.test(item.title) ? item.title : `Sosô na controladora · ${String(index).padStart(2, '0')}`;
+  const caption = item.subtitle === title ? '' : item.subtitle || (item.id === 'intro' ? 'Um primeiro encontro com a sua música.' : 'Dê o play e conheça seu jeito de tocar.');
+  return <article className={`sx-video-card ${item.id === 'intro' ? 'sx-video-featured' : ''}${active ? ' is-active' : ''}`} aria-current={active ? 'true' : undefined}>
+    <div className="sx-video-frame">
+      <video ref={ref} src={item.videoUrl} poster={item.poster} preload="metadata" controls playsInline aria-label={title}
+        onPlay={event => { if (!managed) document.querySelectorAll('video').forEach(video => { if (video !== event.currentTarget) video.pause(); }); track('video_played', { id: item.id }); }}
+        onEnded={() => track('video_completed', { id: item.id })} />
+      <span className="sx-video-badge">{item.id === 'intro' ? 'RESUMO · 35 SEGUNDOS' : `TAKE ${String(index).padStart(2, '0')}`}</span>
+    </div>
+    <h3>{title}</h3>{caption && <p>{caption}</p>}
+  </article>;
+}
+
+function Videos({ items }: { items: MediaItem[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const moveRef = useRef<(direction: number) => void>(() => {});
+  const [playback, setPlayback] = useState({ index: 0, enabled: false, message: '' });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const videos = Array.from(el.querySelectorAll('video'));
+    const cards = Array.from(el.children) as HTMLElement[];
+    let index = 0;
+    let enabled = false;
+    let visible = false;
+    let disposed = false;
+    let requestedScroll: number | null = null;
+    let scrollTimer: ReturnType<typeof setTimeout>;
+    const expectedPauses = new WeakMap<HTMLVideoElement, number>();
+    const requestedPlays = new WeakSet<HTMLVideoElement>();
+
+    const sync = (message = '') => setPlayback({ index, enabled, message });
+    const pause = (video: HTMLVideoElement) => {
+      if (video.paused) return;
+      expectedPauses.set(video, (expectedPauses.get(video) || 0) + 1);
+      video.pause();
+    };
+    const pauseAll = () => videos.forEach(pause);
+    const stop = (message = '') => { enabled = false; pauseAll(); sync(message); };
+    const playCurrent = () => {
+      const video = videos[index];
+      if (!video || !enabled || !visible || document.hidden || !video.paused) return;
+      requestedPlays.add(video);
+      void video.play().catch(error => {
+        requestedPlays.delete(video);
+        if (!disposed && enabled && videos[index] === video && error.name !== 'AbortError') stop('Toque no play para continuar.');
+      });
+    };
+    const select = (next: number) => {
+      if (next === index || !videos[next]) return;
+      index = next;
+      videos.forEach((video, position) => { if (position !== index) pause(video); });
+      sync();
+      playCurrent();
+    };
+    const positionOf = (position: number) => Math.min(el.scrollWidth - el.clientWidth, cards[position].offsetLeft - cards[0].offsetLeft);
+    moveRef.current = direction => {
+      clearTimeout(scrollTimer);
+      const next = Math.max(0, Math.min(videos.length - 1, index + direction));
+      if (!videos[next]) return;
+      select(next);
+      const left = positionOf(next);
+      requestedScroll = left;
+      el.scrollTo({ left, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    };
+
+    const onPlay = (event: Event) => {
+      const video = event.target as HTMLVideoElement;
+      const next = videos.indexOf(video);
+      if (next < 0) return;
+      if (requestedPlays.has(video)) {
+        requestedPlays.delete(video);
+        if (!enabled || next !== index) { pause(video); return; }
+      } else {
+        index = next;
+        enabled = true;
+      }
+      videos.forEach(other => { if (other !== video) pause(other); });
+      document.querySelectorAll('video').forEach(other => { if (!el.contains(other)) other.pause(); });
+      sync();
+    };
+    const onPause = (event: Event) => {
+      const video = event.target as HTMLVideoElement;
+      const expected = expectedPauses.get(video) || 0;
+      if (expected) { expectedPauses.set(video, expected - 1); return; }
+      if (video.ended) return;
+      // Only a user's pause cancels the queue; switching cards pauses internally.
+      if (videos[index] === video) stop();
+    };
+    const onOutsidePlay = (event: Event) => { if (event.target instanceof HTMLVideoElement && !el.contains(event.target)) stop(); };
+    const onScroll = () => {
+      // Several desktop cards share the final scroll position. Keep the arrow's
+      // selected card until a real gesture takes over, including late snap events.
+      if (requestedScroll !== null) return;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const max = el.scrollWidth - el.clientWidth;
+        if (max < 2) return;
+        if (el.scrollLeft >= max - 2) { select(videos.length - 1); return; }
+        const nearest = cards.reduce((best, card, candidate) => Math.abs(card.offsetLeft - cards[0].offsetLeft - el.scrollLeft) < Math.abs(cards[best].offsetLeft - cards[0].offsetLeft - el.scrollLeft) ? candidate : best, 0);
+        select(nearest);
+      }, 100);
+    };
+    const interruptScroll = () => { requestedScroll = null; clearTimeout(scrollTimer); };
+    const onVisibility = () => { if (document.hidden) pauseAll(); else playCurrent(); };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) playCurrent(); else pauseAll();
+    }, { rootMargin: '120px' });
+    observer.observe(el);
+    el.addEventListener('play', onPlay, true);
+    el.addEventListener('pause', onPause, true);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    el.addEventListener('pointerdown', interruptScroll, { passive: true });
+    el.addEventListener('wheel', interruptScroll, { passive: true });
+    el.addEventListener('keydown', interruptScroll);
+    document.addEventListener('play', onOutsidePlay, true);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      disposed = true;
+      clearTimeout(scrollTimer);
+      observer.disconnect();
+      el.removeEventListener('play', onPlay, true);
+      el.removeEventListener('pause', onPause, true);
+      el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('pointerdown', interruptScroll);
+      el.removeEventListener('wheel', interruptScroll);
+      el.removeEventListener('keydown', interruptScroll);
+      document.removeEventListener('play', onOutsidePlay, true);
+      document.removeEventListener('visibilitychange', onVisibility);
+      pauseAll();
+    };
+  }, [items.length]);
+  return <>
+    <div className="sx-video-track" ref={ref}>{items.map((item, index) => <VideoCard key={item.id} item={item} index={index + 1} managed active={playback.index === index} />)}</div>
+    <div className="sx-carousel-controls"><span aria-live="polite">{items.length ? `${playback.index + 1} / ${items.length} · ` : ''}{playback.message || (playback.enabled ? 'Play ao navegar' : 'Pausado · dê o play para começar')}</span><div><button onClick={() => moveRef.current(-1)} disabled={playback.index === 0 || !items.length} aria-label="Vídeos anteriores"><ArrowLeft /></button><button onClick={() => moveRef.current(1)} disabled={playback.index >= items.length - 1} aria-label="Próximos vídeos"><ArrowRight /></button></div></div>
+  </>;
+}
+
+function Lightbox({ items, index, onChange, onClose }: { items: MediaItem[]; index: number; onChange: (index: number) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const start = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    const dialog = ref.current;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    dialog?.showModal(); document.body.style.overflow = 'hidden';
+    return () => { dialog?.close(); document.body.style.overflow = overflow; previous?.focus(); };
+  }, []);
+  const move = (step: number) => onChange((index + step + items.length) % items.length);
+  const item = items[index];
+  return <dialog ref={ref} className="sx-lightbox" aria-label="Galeria de fotos" onCancel={e => { e.preventDefault(); onClose(); }} onKeyDown={e => { if (e.key === 'ArrowRight') { e.preventDefault(); move(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); } }}>
+    <button className="sx-lb-close" onClick={onClose} aria-label="Fechar galeria"><X /></button>
+    <button className="sx-lb-prev" onClick={() => move(-1)} disabled={items.length < 2} aria-label="Imagem anterior"><ArrowLeft /></button>
+    <div className="sx-lb-media" onTouchStart={e => { start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - start.current.x; const dy = e.changedTouches[0].clientY - start.current.y; if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) move(dx < 0 ? 1 : -1); }}>
+      <img src={item.src} alt={item.alt} draggable={false} />
+    </div>
+    <output className="sx-lb-count" aria-live="polite">{index + 1} / {items.length}</output>
+    <button className="sx-lb-next" onClick={() => move(1)} disabled={items.length < 2} aria-label="Próxima imagem"><ArrowRight /></button>
+  </dialog>;
+}
+
+function MobileMenu({ site, close }: { site: SiteConfig; close: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    el?.showModal(); document.body.style.overflow = 'hidden';
+    return () => { el?.close(); document.body.style.overflow = overflow; previous?.focus(); };
+  }, []);
+  return <dialog ref={ref} className="sx-menu" onCancel={e => { e.preventDefault(); close(); }} aria-label="Menu principal"><button onClick={close} aria-label="Fechar menu"><X /></button><nav>{site.navigation.map((link, index) => <a href={link.href} onClick={close} key={link.href}><small>0{index + 1}</small>{link.label}<ArrowUpRight /></a>)}</nav><p>DJ SOSÔ · SÃO PAULO, BRASIL</p></dialog>;
+}
+
+export function SiteExperience({ site, gallery }: Props) {
+  const [menu, setMenu] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const [visiblePhotos, setVisiblePhotos] = useState(4);
+  const [fab, setFab] = useState(false);
+  useEffect(() => {
+    const update = () => setFab(window.scrollY > 500 && (document.getElementById('contact')?.getBoundingClientRect().top ?? Infinity) > window.innerHeight * .6);
+    update(); window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+  const order = ['foto-2', 'foto-4', 'foto-1', 'foto-6'];
+  const photos = gallery.filter(item => item.type === 'foto').map(item => {
+    const fileNumber = item.src?.match(/\/(\d+)\.[^/?]+(?:\?|$)/)?.[1];
+    const labelKey = fileNumber ? `foto-${fileNumber}` : item.id;
+    return { ...item, alt: /^\d+$/.test(item.alt) ? photoLabels[labelKey] || 'DJ Sosô — galeria' : item.alt };
+  }).sort((a, b) => {
+    const rank = (id: string) => order.includes(id) ? order.indexOf(id) : order.length;
+    return rank(a.id) - rank(b.id);
+  });
+  const videos = gallery.filter(item => item.type === 'video').map(item => !item.poster && /^video-[1-5]$/.test(item.id) && /^\d+$/.test(item.title || '') ? { ...item, poster: `/media/${item.id}.jpg` } : item);
+  const openPhoto = (index: number) => { setLightbox(index); track('gallery_opened', { id: photos[index].id }); };
+  return <div className="showcase" id="top">
+    <a className="sx-skip" href="#conteudo">Ir para o conteúdo</a>
+    <header className="sx-header"><Brand /><nav aria-label="Navegação principal">{site.navigation.map(link => <a key={link.href} href={link.href}>{link.label}</a>)}</nav><a className="sx-header-book" href="#contact">Vamos conversar <ArrowUpRight size={15} /></a><button className="sx-menu-button" onClick={() => setMenu(true)} aria-label="Abrir menu"><Menu /></button></header>
+    {menu && <MobileMenu site={site} close={() => setMenu(false)} />}
+    <main id="conteudo">
+      <section className="sx-hero sx-hero--portrait-first sx-shell">
+        <div className="sx-hero-portrait"><SectionImage imageKey="hero" width="1024" height="1536" fetchPriority="high" /></div>
+        <div className="sx-hero-copy"><p className="sx-eyebrow"><span className="sx-live-dot" />SÃO PAULO, BRASIL · DJ & CRIADORA</p><p className="sx-hero-lead">9 anos. Personalidade de sobra.<br /><strong>Música para conectar pessoas.</strong></p><p className="sx-intro">{presentationCopy.intro}</p><div className="sx-actions"><ContactLink site={site} source="hero" /><a className="sx-inline-link" href="#resumo" onClick={() => track('hero_watch_clicked')}>Ver o resumo da Sosô <ArrowDown size={17} /></a></div><div className="sx-hero-foot"><span>LOUNGE / SUNSET / EVENTOS / MARCAS</span><KitLink compact /></div></div>
+      </section>
+      <section className="sx-summary sx-chapter sx-chapter--summary" id="resumo" aria-labelledby="resumo-title">
+        <div className="sx-section sx-shell sx-summary-layout">
+          <div className="sx-summary-copy">
+            <p className="sx-eyebrow">COMECE AQUI / VÍDEO RESUMO</p>
+            <h2 id="resumo-title">O melhor da Sosô.<br /><em>Em um só play.</em></h2>
+            <p className="sx-summary-lead">35 segundos para sentir a sua energia.</p>
+            <p>Cinco momentos na controladora para conhecer a música e a presença da Sosô.</p>
+            <a className="sx-inline-link" href="#videos">Explore a galeria de vídeos <ArrowDown size={17} /></a>
+          </div>
+          <VideoCard item={intro} index={0} />
+        </div>
+      </section>
+      <section className="sx-chapter sx-chapter--videos" id="videos" aria-labelledby="videos-title">
+        <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">01 / GALERIA DE VÍDEOS</p><h2 id="videos-title">Mais música.<br /><em>Mais momentos.</em></h2></div><p>Explore os vídeos da Sosô tocando.<br />Escolha um momento e dê o play.</p></div><Videos items={videos} /></div>
+      </section>
+      <section className="sx-events sx-chapter sx-chapter--events" id="eventos" aria-labelledby="eventos-title">
+        <div className="sx-shell sx-section">
+          <div className="sx-section-head"><div><p className="sx-eyebrow">02 / FORMATOS DE CONTRATAÇÃO</p><h2 id="eventos-title">Qual é a sua<br /><em>ocasião?</em></h2></div><p>Três formatos, cada um com seu clima.<br />Encontre o que combina com a sua ideia.</p></div>
+          <div className="sx-format-grid">{formats.map((format, index) => {
+            const Icon = formatIcons[format.imageSlot];
+            return <article className="sx-format" data-format={format.imageSlot} key={format.name}>
+              <div className="sx-format-image"><SectionImage imageKey={format.imageSlot} loading="lazy" /><span>0{index + 1}</span></div>
+              <p className="sx-eyebrow"><Icon size={18} aria-hidden="true" />{format.tag}</p>
+              <h3>{format.name}</h3><p>{format.text}</p><small>{format.places}</small>
+              <a className="sx-format-cta" href={whatsappLink(site.contact.whatsapp, format.topic)} onClick={() => track('whatsapp_clicked', { source: format.name })}>{index === 2 ? 'Propor uma parceria' : `Consultar ${format.name}`} <ArrowUpRight size={17} /></a>
+            </article>;
+          })}</div>
+          <div className="sx-repertoire"><span>NO REPERTÓRIO</span><ul>{site.repertoire.map(style => <li key={style}>{style}</li>)}</ul></div>
+        </div>
+      </section>
+      <section className="sx-chapter sx-chapter--about" id="about" aria-labelledby="about-title">
+        <div className="sx-section sx-shell">
+          <div className="sx-section-head"><div><p className="sx-eyebrow">03 / CONHEÇA A SOFIA</p><h2 id="about-title">Pequena na idade.<br /><em>Grande na curiosidade.</em></h2></div></div>
+          <div className="sx-about"><div className="sx-about-image"><SectionImage imageKey="about" width="1024" height="1536" loading="lazy" /><span className="sx-photo-label">CURIOSA POR NATUREZA ✳</span></div><div><p className="sx-body-lead">{biography}</p><p>{presentationCopy.aboutStory}</p><p>{presentationCopy.aboutEnergy}</p><div className="sx-about-note"><Music2 /><span>Uma história em construção.<br /><strong>Um ritmo que já é só dela.</strong></span></div><a className="sx-inline-link" href={site.social.instagram} onClick={() => track('instagram_clicked')}>Acompanhe a Sosô no Instagram <ArrowUpRight size={17} /></a></div></div>
+        </div>
+      </section>
+      <section className="sx-chapter sx-chapter--gallery" id="gallery" aria-labelledby="gallery-title">
+        <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">04 / GALERIA DE FOTOS</p><h2 id="gallery-title">Além do <em>play.</em></h2></div><p>Retratos, música e personalidade.<br />Toque em uma foto para ver de perto.</p></div><div className="sx-photo-grid" id="photos-grid">{photos.slice(0, visiblePhotos).map((photo, index) => <button key={photo.id} className="sx-photo" onClick={() => openPhoto(index)} aria-label={`Ampliar: ${photo.alt}`}><img src={photo.src} alt={photo.alt} loading="lazy" /><span>{String(index + 1).padStart(2, '0')}<ArrowUpRight size={20} /></span></button>)}</div>{visiblePhotos < photos.length && <button className="sx-button sx-button-outline sx-more" aria-controls="photos-grid" onClick={() => { setVisiblePhotos(count => Math.min(count + 4, photos.length)); track('gallery_more_clicked'); }}>Mostrar mais fotos <ArrowDown size={17} /></button>}</div>
+      </section>
+      <section className="sx-brands sx-chapter sx-chapter--brands" id="marcas" aria-labelledby="marcas-title"><div className="sx-shell sx-section sx-brand-layout"><div><p className="sx-eyebrow">05 / PROJETOS & PARCERIAS</p><h2 id="marcas-title">DJ SOSÔ<br /><em>+ sua marca.</em></h2><p className="sx-body-lead">Música e conteúdo<br />com a personalidade da Sosô.</p><p>{presentationCopy.partnership}</p><ul className="sx-brand-services"><li><Sparkles size={18} />Conteúdo para redes e campanhas</li><li><Music2 size={18} />Apresentações em ativações de marca</li><li><ArrowUpRight size={18} />Projetos e experiências personalizados</li></ul><ContactLink site={site} source="brands" label="Propor uma parceria" topic="um projeto com minha marca" /><p className="sx-fine">{presentationCopy.partnershipBrief}</p></div><div className="sx-brand-art"><SectionImage imageKey="brands" loading="lazy" /><span>MÚSICA.<br />IDEIAS.<br />CONEXÕES.</span></div></div></section>
+      <section className="sx-chapter sx-chapter--equipment" id="equipamentos" aria-labelledby="equipamentos-title">
+        <div className="sx-section sx-shell">
+          <div className="sx-section-head"><div><p className="sx-eyebrow">06 / ESTRUTURA & SERVIÇOS</p><h2 id="equipamentos-title">O som.<br />E tudo <em>ao redor.</em></h2></div><p>Apresentação, equipamentos e registro.<br />Nossa equipe ajuda a planejar a estrutura do seu evento.</p></div>
+          <div className="sx-setup-grid"><article><span>01</span><h3>DJ & Performance</h3><p>Sets com a Sosô, com duração e repertório definidos para a ocasião.</p></article><article><span>02</span><h3>Áudio & Equipamentos</h3><p>Locação avulsa ou junto da apresentação. Nossa equipe avalia a estrutura necessária para o espaço.</p></article><article><span>03</span><h3>Foto & Vídeo</h3><p>Registro do show ou do evento, como serviço adicional. Pacotes de 4h, 8h ou mais, a combinar.</p></article></div>
+          <details className="sx-details"><summary>Equipamentos disponíveis <span>Ver detalhes técnicos +</span></summary><div className="sx-tech"><div><h3>Áudio & Performance</h3><ul>{site.gear.audio.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>Captura</h3><ul>{site.gear.capture.map(item => <li key={item}>{item}</li>)}</ul></div></div></details>
+          <div className="sx-setup-bottom"><p>Já tem som no local? Nossa equipe avalia a estrutura com você.</p><ContactLink site={site} source="equipment" label="Conversar sobre a estrutura" topic="a estrutura para meu evento" /></div>
+        </div>
+      </section>
+      <section className="sx-contact sx-chapter sx-chapter--contact" id="contact" aria-labelledby="contact-title"><div className="sx-shell sx-section"><p className="sx-eyebrow">07 / VAMOS CONVERSAR</p><div className="sx-contact-layout"><div><h2 id="contact-title">Seu próximo evento.<br /><em>Um novo ritmo.</em></h2><p>{presentationCopy.contact}</p><ContactLink site={site} source="contact" light /><div className="sx-manager"><span>FALE COM NOSSA EQUIPE</span><strong>{site.contact.manager}</strong><a href={`mailto:${site.contact.email}`}>{site.contact.email} <ArrowUpRight size={15} /></a><small>{site.contact.role} · {site.location}</small></div></div><aside className="sx-kit"><Download size={28} /><p className="sx-eyebrow">PARA LEVAR COM VOCÊ</p><h3>Tudo sobre a Sosô.<br />Em um só lugar.</h3><p>Apresentação, formatos, repertório e contato. Um material para compartilhar com sua equipe.</p><KitLink /><a className="sx-inline-link" href="/presskit">Ver versão online <ArrowUpRight size={16} /></a></aside></div><div className="sx-faq"><h3>Dúvidas antes de contratar?</h3><p>Veja como nossa equipe organiza apresentações e parcerias.</p>{faq.map(item => <details key={item.question}><summary>{item.question}<span aria-hidden="true">+</span></summary><p>{item.answer}</p></details>)}</div></div></section>
+    </main>
+    <footer className="sx-footer sx-shell"><Brand /><p>Música para conectar pessoas.<br /><small>© {new Date().getFullYear()} DJ SOSÔ · São Paulo, Brasil</small></p><div><a href={site.social.instagram} onClick={() => track('instagram_clicked')}>Instagram <ArrowUpRight size={15} /></a><a href={site.social.tiktok} onClick={() => track('tiktok_clicked')}>TikTok <ArrowUpRight size={15} /></a><a href="/admin" className="sx-admin-link">Área da equipe</a></div></footer>
+    {fab && !menu && lightbox === null && <a className="sx-fab" href={whatsappLink(site.contact.whatsapp)} onClick={() => track('whatsapp_fab_clicked')} aria-label="Conversar com nossa equipe no WhatsApp"><MessageCircle size={21} /><span>Vamos conversar</span></a>}
+    {lightbox !== null && photos.length > 0 && <Lightbox items={photos} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} />}
+  </div>;
+}

@@ -1,0 +1,50 @@
+{
+  "hero": {
+    "label": "Topo · Hero",
+    "src": "/galeria/secoes/hero-798f93fb-cf7c-4b8a-98f8-2fb55935174d.webp",
+    "alt": "DJ , foto em estúdio com mirror balls e reflexos de luzes",
+    "position": "50% 35%"
+  },
+  "about": {
+    "label": "Conheça a Sofia",
+    "src": "/galeria/secoes/about-b00bc65a-9567-4f83-aa60-aab0939afefc.webp",
+    "alt": "Sofia com óculos de flores e fones no pescoço, segurando uma moldura inspirada no Instagram",
+    "position": "50% 50%"
+  },
+  "lounge": {
+    "label": "Eventos · Lounge & Sunset",
+    "src": "/galeria/secoes/lounge-0e883ff0-874c-4a54-b12d-10290cc69b6d.webp",
+    "alt": "DJ Sosô de olhos fechados, segurando os fones enquanto sente a música",
+    "position": "50% 35%"
+  },
+  "events": {
+    "label": "Eventos · Festas & Eventos",
+    "src": "/galeria/secoes/events-7009da2e-9ce0-4498-b858-ce34a6936b69.webp",
+    "alt": "DJ agitando a pista",
+    "position": "50% 100%"
+  },
+  "brandFormat": {
+    "label": "Eventos · Marcas & Conteúdo",
+    "src": "/galeria/fotos/6.webp",
+    "alt": "Retrato de Sosô com óculos de flores e fundo amarelo",
+    "position": "50% 35%"
+  },
+  "brands": {
+    "label": "Projetos & Parcerias com marcas",
+    "src": "/galeria/fotos/6.webp",
+    "alt": "Retrato de Sosô com óculos de flores e fundo amarelo",
+    "position": "50% 50%"
+  },
+  "presskitCover": {
+    "label": "Press kit online · Capa",
+    "src": "/dj-soso-hero.webp",
+    "alt": "DJ Sosô de jaqueta dourada e fones",
+    "position": "50% 25%"
+  },
+  "presskitBio": {
+    "label": "Press kit online · Biografia",
+    "src": "/dj-soso-bio.webp",
+    "alt": "Sofia com fones e uma bolha de chiclete",
+    "position": "50% 50%"
+  }
+}
