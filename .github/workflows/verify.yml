@@ -23,3 +23,6 @@ jobs:
 
       - name: Verify
         run: npm run verify
+
+      - name: Check clean working tree
+        run: git diff --exit-code

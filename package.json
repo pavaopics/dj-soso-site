@@ -16,8 +16,8 @@
     "lint": "oxlint app components/site-experience.tsx data lib",
     "typecheck": "tsc --noEmit --incremental false",
     "test": "node scripts/test-deterministic-gallery.mjs",
-    "verify": "npm run gallery && npm run lint && npm run typecheck && npm test && npm run build",
-    "publish:check": "npm run verify && git diff --check",
+    "verify": "npm test && npm run lint && npm run typecheck && npm run build",
+    "publish:check": "npm run verify && git diff --check && git diff --exit-code",
     "format": "oxfmt"
   },
   "dependencies": {
