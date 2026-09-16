@@ -8,10 +8,9 @@ import type { SiteConfig } from '@/data/site';
 import { biography, faq, formats, photoLabels, presentationCopy, whatsappLink } from '@/data/presentation';
 import { track } from '@/lib/analytics';
 import { SectionImage } from '@/components/section-image';
-import { sectionImages } from '@/data/section-images';
 
 type Props = { site: SiteConfig; gallery: MediaItem[] };
-const intro: MediaItem = { id: 'intro', type: 'video', videoUrl: '/media/soso-apresentacao.mp4?v=audio-normalizado-1', poster: sectionImages.hero.src, title: 'O melhor da Sosô em 35 segundos', subtitle: 'Cinco momentos, uma personalidade só.', alt: 'Seleção de momentos da DJ Sosô tocando', aspectRatio: '9/16' };
+const intro: MediaItem = { id: 'intro', type: 'video', videoUrl: '/media/soso-apresentacao.mp4?v=audio-normalizado-1', poster: '/media/soso-apresentacao.jpg', title: 'O melhor da Sosô em 35 segundos', subtitle: 'Cinco momentos, uma personalidade só.', alt: 'Seleção de momentos da DJ Sosô tocando', aspectRatio: '9/16' };
 const formatIcons = { lounge: Sunset, events: PartyPopper, brandFormat: Megaphone };
 
 function Brand() {

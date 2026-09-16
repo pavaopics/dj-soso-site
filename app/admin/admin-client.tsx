@@ -272,6 +272,7 @@ export function AdminClient() {
 
       <nav className="adm-tabs" aria-label="Seções do painel">
         <a className="adm-btn adm-btn--ghost" href="#enviar">Enviar fotos e vídeos</a>
+        <a className="adm-btn adm-btn--ghost" href="#video-resumo">Vídeo resumo</a>
         <a className="adm-btn adm-btn--ghost" href="#imagens-secoes">Imagens das seções</a>
         <a className="adm-btn adm-btn--ghost" href="#midia-publicada">Mídia e descrições</a>
       </nav>
@@ -320,6 +321,8 @@ export function AdminClient() {
           </div>
         </section>
       )}
+
+      <SummaryVideoPanel />
 
       <SectionImagesPanel photos={photos} revision={sectionRevision} />
 
@@ -382,6 +385,98 @@ export function AdminClient() {
       )}
     </div>
   );
+}
+
+function SummaryVideoPanel() {
+  const [info, setInfo] = useState<{ videoUrl: string; poster: string | null; videoExists: boolean; coverExists: boolean } | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const load = async () => {
+    setError('');
+    try {
+      const response = await fetch('/api/admin/summary-video', { cache: 'no-store' });
+      const data = await response.json() as { videoUrl: string; poster: string | null; videoExists: boolean; coverExists: boolean; error?: string };
+      if (!response.ok) throw new Error(data.error || 'Não foi possível carregar o vídeo resumo.');
+      setInfo(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(load, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const replaceVideo = async () => {
+    if (!file) return;
+    setBusy(true);
+    setStatus('');
+    setError('');
+    try {
+      const lower = file.name.toLowerCase();
+      const valid = ['video/mp4', 'video/quicktime', 'video/x-m4v'].includes(file.type) || /\.(mp4|mov|m4v)$/.test(lower);
+      if (!valid) throw new Error('Envie um arquivo MP4, MOV ou M4V para o vídeo resumo.');
+      const contentType = file.type || (lower.endsWith('.mov') ? 'video/quicktime' : lower.endsWith('.m4v') ? 'video/x-m4v' : 'video/mp4');
+      const response = await fetch('/api/admin/summary-video', { method: 'POST', headers: { 'Content-Type': contentType }, body: file });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Não foi possível substituir o vídeo resumo.');
+      setFile(null);
+      await load();
+      setStatus('Vídeo resumo convertido para MP4 reduzido e substituído. A capa antiga foi removida; dê play, pare no frame desejado e salve a nova capa.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const captureCover = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setBusy(true);
+    setStatus('');
+    setError('');
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')!.drawImage(video, 0, 0);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Não foi possível capturar a capa.');
+      const response = await fetch('/api/admin/summary-cover', { method: 'POST', body: blob });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Não foi possível salvar a capa.');
+      await load();
+      setStatus('Capa do vídeo resumo atualizada.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <section className="adm-card adm-card--full" id="video-resumo">
+    <h2>Vídeo resumo <span className="adm-total">Conheça a Sosô em 30 segundos</span></h2>
+    <p className="adm-note">Este é o vídeo destacado no começo do site. Envie MP4, MOV ou M4V; a máquina converte e reduz para <code>public/media/soso-apresentacao.mp4</code>. Ao trocar o vídeo, a capa antiga é removida para você escolher um frame novo.</p>
+    {info && <video key={info.videoUrl} ref={videoRef} src={info.videoUrl} poster={info.poster || undefined} controls playsInline preload="metadata" />}
+    <label className="adm-drop">
+      <input type="file" accept="video/mp4,video/quicktime,video/x-m4v,.mp4,.mov,.m4v" disabled={busy} onChange={event => setFile(event.target.files?.[0] || null)} />
+      <Film size={22} />
+      <span>{file ? file.name : 'Substituir vídeo resumo'} <small>{file ? formatSize(file.size) : 'MP4, MOV ou M4V'}</small></span>
+    </label>
+    <div className="adm-row">
+      <button className="adm-btn adm-btn--dark" onClick={() => void replaceVideo()} disabled={busy || !file}>{busy ? 'Salvando…' : 'Salvar novo vídeo'} <ArrowUpRight size={14} /></button>
+      <button className="adm-btn adm-btn--green" onClick={() => void captureCover()} disabled={busy || !info?.videoExists}><Check size={14} /> Usar frame atual como capa</button>
+      <button className="adm-btn adm-btn--ghost" onClick={() => void load()} disabled={busy}><RefreshCw size={14} /> recarregar</button>
+    </div>
+    {status && <output className="adm-note" aria-live="polite">{status}</output>}
+    {error && <p className="adm-err" role="alert">{error}</p>}
+  </section>;
 }
 
 function SectionImagesPanel({ photos, revision }: { photos: MediaItem[]; revision: number }) {
