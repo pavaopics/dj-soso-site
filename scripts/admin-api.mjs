@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { copyFileSync, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, extname, join, normalize } from 'node:path';
 
 const root = process.cwd();
 const galeria = join(root, 'public', 'galeria');
+const mediaDir = join(root, 'public', 'media');
 const descriptionsFile = join(galeria, 'descriptions.json');
 const sectionImagesFile = join(root, 'data', 'section-images.json');
 
@@ -14,6 +15,14 @@ const UPLOAD_FOLDERS = new Set([...FOLDERS, 'secoes']);
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
 const VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v']);
 const POSITIONS = new Set(['50% 0%', '50% 25%', '50% 35%', '50% 50%', '50% 100%']);
+const SUMMARY_VIDEO = 'soso-apresentacao.mp4';
+const SUMMARY_COVER = 'soso-apresentacao.jpg';
+const MAX_SUMMARY_VIDEO = 800 * 1024 * 1024;
+const SUMMARY_VIDEO_TYPES = new Map([
+  ['video/mp4', '.mp4'],
+  ['video/quicktime', '.mov'],
+  ['video/x-m4v', '.m4v'],
+]);
 
 function loadSectionImages() {
   return JSON.parse(readFileSync(sectionImagesFile, 'utf8'));
@@ -56,6 +65,27 @@ function sendJson(res, code, payload) {
   res.statusCode = code;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(payload));
+}
+
+function fileVersion(path) {
+  return existsSync(path) ? createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 12) : 'missing';
+}
+
+function convertSummaryVideo(input, output) {
+  execFileSync('ffmpeg', [
+    '-y',
+    '-hide_banner',
+    '-loglevel', 'error',
+    '-i', input,
+    '-vf', 'scale=min(1080\\,iw):-2',
+    '-c:v', 'libx264',
+    '-preset', 'medium',
+    '-crf', '24',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-movflags', '+faststart',
+    output,
+  ], { stdio: 'pipe' });
 }
 
 function loadDescriptions() {
@@ -108,6 +138,49 @@ export function adminApiPlugin() {
           if (url.pathname === '/api/admin/sections' && req.method === 'GET') {
             res.setHeader('Cache-Control', 'no-store');
             return sendJson(res, 200, { images: loadSectionImages() });
+          }
+
+          if (url.pathname === '/api/admin/summary-video' && req.method === 'GET') {
+            const video = join(mediaDir, SUMMARY_VIDEO);
+            const cover = join(mediaDir, SUMMARY_COVER);
+            res.setHeader('Cache-Control', 'no-store');
+            return sendJson(res, 200, {
+              videoUrl: `/media/${SUMMARY_VIDEO}?v=${fileVersion(video)}`,
+              poster: existsSync(cover) ? `/media/${SUMMARY_COVER}?v=${fileVersion(cover)}` : null,
+              videoExists: existsSync(video),
+              coverExists: existsSync(cover),
+            });
+          }
+
+          if (url.pathname === '/api/admin/summary-video' && req.method === 'POST') {
+            const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+            const contentLength = Number(req.headers['content-length'] || 0);
+            const extension = SUMMARY_VIDEO_TYPES.get(contentType);
+            if (!extension) return sendJson(res, 400, { error: 'envie um vídeo MP4, MOV ou M4V' });
+            if (!contentLength || contentLength > MAX_SUMMARY_VIDEO) return sendJson(res, 400, { error: 'vídeo inválido ou maior que 800 MB' });
+            mkdirSync(mediaDir, { recursive: true });
+            const tempInput = join(mediaDir, `summary-upload-${randomUUID()}${extension}`);
+            const tempOutput = join(mediaDir, `summary-output-${randomUUID()}.mp4`);
+            try {
+              await pipeBody(req, tempInput);
+              convertSummaryVideo(tempInput, tempOutput);
+              renameSync(tempOutput, join(mediaDir, SUMMARY_VIDEO));
+              const oldCover = join(mediaDir, SUMMARY_COVER);
+              if (existsSync(oldCover)) unlinkSync(oldCover);
+            } finally {
+              if (existsSync(tempInput)) unlinkSync(tempInput);
+              if (existsSync(tempOutput)) unlinkSync(tempOutput);
+            }
+            return sendJson(res, 200, { ok: true, converted: true });
+          }
+
+          if (url.pathname === '/api/admin/summary-cover' && req.method === 'POST') {
+            const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+            if (contentType !== 'image/jpeg') return sendJson(res, 400, { error: 'a capa precisa ser JPG' });
+            mkdirSync(mediaDir, { recursive: true });
+            const body = await readBody(req);
+            writeFileSync(join(mediaDir, SUMMARY_COVER), body);
+            return sendJson(res, 200, { ok: true });
           }
 
           if (url.pathname === '/api/admin/sections' && req.method === 'POST') {
