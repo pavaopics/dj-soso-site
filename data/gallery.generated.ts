@@ -13,4 +13,8 @@ export const gallery: MediaItem[] = [
   {"id":"foto-4","type":"foto","src":"/galeria/fotos/5.webp?v=94035006824a","alt":"5","title":"5","aspectRatio":"3/4"},
   {"id":"foto-5","type":"foto","src":"/galeria/fotos/6.webp?v=97203b6982ec","alt":"6","title":"6","aspectRatio":"3/4"},
   {"id":"foto-6","type":"foto","src":"/galeria/fotos/7.webp?v=1d8ff0e064a1","alt":"7","title":"7","aspectRatio":"3/4"},
+  {"id":"foto-7","type":"foto","src":"/galeria/fotos/8.webp?v=082ef0278f39","alt":"8","title":"8","aspectRatio":"3/4"},
+  {"id":"foto-8","type":"foto","src":"/galeria/fotos/9.webp?v=c68ac1009732","alt":"9","title":"9","aspectRatio":"3/4"},
+  {"id":"foto-9","type":"foto","src":"/galeria/fotos/10.webp?v=dfc991afddaf","alt":"10","title":"10","aspectRatio":"3/4"},
+  {"id":"foto-10","type":"foto","src":"/galeria/fotos/11.webp?v=6c5ef29370a6","alt":"11","title":"11","aspectRatio":"3/4"},
 ];
