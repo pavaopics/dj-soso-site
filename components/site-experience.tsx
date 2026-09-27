@@ -2,7 +2,7 @@
 /* eslint-disable next/no-img-element, next/no-html-link-for-pages, jsx-a11y/media-has-caption */
 // Local WebP assets and music-performance clips use native media controls.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Download, Megaphone, Menu, MessageCircle, Music2, PartyPopper, Sparkles, Sunset, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, CirclePlay, Download, Megaphone, Menu, MessageCircle, Music2, PartyPopper, Play, Sparkles, Sunset, X } from 'lucide-react';
 import type { MediaItem } from '@/data/content';
 import type { SiteConfig } from '@/data/site';
 import { biography, faq, formats, photoLabels, presentationCopy, whatsappLink } from '@/data/presentation';
@@ -210,6 +210,21 @@ function MobileMenu({ site, close }: { site: SiteConfig; close: () => void }) {
   return <dialog ref={ref} className="sx-menu" onCancel={e => { e.preventDefault(); close(); }} aria-label="Menu principal"><button onClick={close} aria-label="Fechar menu"><X /></button><nav>{site.navigation.map((link, index) => <a href={link.href} onClick={close} key={link.href}><small>0{index + 1}</small>{link.label}<ArrowUpRight /></a>)}</nav><p>DJ SOSÔ · SÃO PAULO, BRASIL</p></dialog>;
 }
 
+function YouTubeSet({ set }: { set: SiteConfig['featuredSet'] }) {
+  const [playing, setPlaying] = useState(false);
+  const poster = `https://i.ytimg.com/vi/${set.videoId}/maxresdefault.jpg`;
+  const fallback = `https://i.ytimg.com/vi/${set.videoId}/hqdefault.jpg`;
+  return <div className="sx-set-media">
+    {playing
+      ? <iframe src={`https://www.youtube-nocookie.com/embed/${set.videoId}?autoplay=1&rel=0`} title={`${set.title} — DJ Sosô no YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+      : <button type="button" className="sx-set-poster" onClick={() => { setPlaying(true); track('youtube_clicked', { source: 'set_section' }); }} aria-label={`Assistir ao set ${set.title} no YouTube`}>
+          <img src={poster} alt={`Capa do set ${set.title} — DJ Sosô no YouTube`} loading="lazy" onError={event => { const image = event.currentTarget; if (!image.src.endsWith('hqdefault.jpg')) image.src = fallback; }} />
+          <span className="sx-set-play" aria-hidden="true"><Play size={30} fill="currentColor" /></span>
+          <span className="sx-set-overlay" aria-hidden="true"><span className="sx-set-tag">YOUTUBE · SET COMPLETO</span><span className="sx-set-hint">Dê o play</span></span>
+        </button>}
+  </div>;
+}
+
 export function SiteExperience({ site, gallery }: Props) {
   const [menu, setMenu] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -255,9 +270,24 @@ export function SiteExperience({ site, gallery }: Props) {
       <section className="sx-chapter sx-chapter--videos" id="videos" aria-labelledby="videos-title">
         <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">01 / GALERIA DE VÍDEOS</p><h2 id="videos-title">Mais música.<br /><em>Mais momentos.</em></h2></div><p>Explore os vídeos da Sosô tocando.<br />Escolha um momento e dê o play.</p></div><Videos items={videos} /></div>
       </section>
+      <section className="sx-set sx-chapter sx-chapter--set" id="set" aria-labelledby="set-title">
+        <div className="sx-section sx-shell sx-set-layout">
+          <div className="sx-set-copy">
+            <p className="sx-eyebrow">02 / SET NO YOUTUBE</p>
+            <h2 id="set-title">O set completo.<br /><em>Direto no YouTube.</em></h2>
+            <p className="sx-set-lead">{site.featuredSet.title} — {site.featuredSet.description}</p>
+            <p>Um set gravado para ouvir do começo ao fim. De Brasilidades e House a clássicos remixados, do jeito que a Sosô toca ao vivo.</p>
+            <div className="sx-set-actions">
+              <a className="sx-button" href={site.featuredSet.url} target="_blank" rel="noreferrer" onClick={() => track('youtube_clicked', { source: 'set_link' })}><CirclePlay size={18} />Assistir no YouTube<ArrowUpRight size={17} /></a>
+              <a className="sx-inline-link" href={site.social.youtube} target="_blank" rel="noreferrer" onClick={() => track('youtube_clicked', { source: 'set_channel' })}>Inscreva-se no canal <ArrowUpRight size={16} /></a>
+            </div>
+          </div>
+          <YouTubeSet set={site.featuredSet} />
+        </div>
+      </section>
       <section className="sx-events sx-chapter sx-chapter--events" id="eventos" aria-labelledby="eventos-title">
         <div className="sx-shell sx-section">
-          <div className="sx-section-head"><div><p className="sx-eyebrow">02 / FORMATOS DE CONTRATAÇÃO</p><h2 id="eventos-title">Qual é a sua<br /><em>ocasião?</em></h2></div><p>Três formatos, cada um com seu clima.<br />Encontre o que combina com a sua ideia.</p></div>
+          <div className="sx-section-head"><div><p className="sx-eyebrow">03 / FORMATOS DE CONTRATAÇÃO</p><h2 id="eventos-title">Qual é a sua<br /><em>ocasião?</em></h2></div><p>Três formatos, cada um com seu clima.<br />Encontre o que combina com a sua ideia.</p></div>
           <div className="sx-format-grid">{formats.map((format, index) => {
             const Icon = formatIcons[format.imageSlot];
             return <article className="sx-format" data-format={format.imageSlot} key={format.name}>
@@ -272,25 +302,25 @@ export function SiteExperience({ site, gallery }: Props) {
       </section>
       <section className="sx-chapter sx-chapter--about" id="about" aria-labelledby="about-title">
         <div className="sx-section sx-shell">
-          <div className="sx-section-head"><div><p className="sx-eyebrow">03 / CONHEÇA A SOFIA</p><h2 id="about-title">Pequena na idade.<br /><em>Grande na curiosidade.</em></h2></div></div>
+          <div className="sx-section-head"><div><p className="sx-eyebrow">04 / CONHEÇA A SOFIA</p><h2 id="about-title">Pequena na idade.<br /><em>Grande na curiosidade.</em></h2></div></div>
           <div className="sx-about"><div className="sx-about-image"><SectionImage imageKey="about" width="1024" height="1536" loading="lazy" /><span className="sx-photo-label">CURIOSA POR NATUREZA ✳</span></div><div><p className="sx-body-lead">{biography}</p><p>{presentationCopy.aboutStory}</p><p>{presentationCopy.aboutEnergy}</p><div className="sx-about-note"><Music2 /><span>Uma história em construção.<br /><strong>Um ritmo que já é só dela.</strong></span></div><a className="sx-inline-link" href={site.social.instagram} onClick={() => track('instagram_clicked')}>Acompanhe a Sosô no Instagram <ArrowUpRight size={17} /></a></div></div>
         </div>
       </section>
       <section className="sx-chapter sx-chapter--gallery" id="gallery" aria-labelledby="gallery-title">
-        <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">04 / GALERIA DE FOTOS</p><h2 id="gallery-title">Além do <em>play.</em></h2></div><p>Retratos, música e personalidade.<br />Toque em uma foto para ver de perto.</p></div><div className="sx-photo-grid" id="photos-grid">{photos.slice(0, visiblePhotos).map((photo, index) => <button key={photo.id} className="sx-photo" onClick={() => openPhoto(index)} aria-label={`Ampliar: ${photo.alt}`}><img src={photo.src} alt={photo.alt} loading="lazy" /><span>{String(index + 1).padStart(2, '0')}<ArrowUpRight size={20} /></span></button>)}</div>{visiblePhotos < photos.length && <button className="sx-button sx-button-outline sx-more" aria-controls="photos-grid" onClick={() => { setVisiblePhotos(count => Math.min(count + 4, photos.length)); track('gallery_more_clicked'); }}>Mostrar mais fotos <ArrowDown size={17} /></button>}</div>
+        <div className="sx-section sx-shell"><div className="sx-section-head"><div><p className="sx-eyebrow">05 / GALERIA DE FOTOS</p><h2 id="gallery-title">Além do <em>play.</em></h2></div><p>Retratos, música e personalidade.<br />Toque em uma foto para ver de perto.</p></div><div className="sx-photo-grid" id="photos-grid">{photos.slice(0, visiblePhotos).map((photo, index) => <button key={photo.id} className="sx-photo" onClick={() => openPhoto(index)} aria-label={`Ampliar: ${photo.alt}`}><img src={photo.src} alt={photo.alt} loading="lazy" /><span>{String(index + 1).padStart(2, '0')}<ArrowUpRight size={20} /></span></button>)}</div>{visiblePhotos < photos.length && <button className="sx-button sx-button-outline sx-more" aria-controls="photos-grid" onClick={() => { setVisiblePhotos(count => Math.min(count + 4, photos.length)); track('gallery_more_clicked'); }}>Mostrar mais fotos <ArrowDown size={17} /></button>}</div>
       </section>
-      <section className="sx-brands sx-chapter sx-chapter--brands" id="marcas" aria-labelledby="marcas-title"><div className="sx-shell sx-section sx-brand-layout"><div><p className="sx-eyebrow">05 / PROJETOS & PARCERIAS</p><h2 id="marcas-title">DJ SOSÔ<br /><em>+ sua marca.</em></h2><p className="sx-body-lead">Música e conteúdo<br />com a personalidade da Sosô.</p><p>{presentationCopy.partnership}</p><ul className="sx-brand-services"><li><Sparkles size={18} />Conteúdo para redes e campanhas</li><li><Music2 size={18} />Apresentações em ativações de marca</li><li><ArrowUpRight size={18} />Projetos e experiências personalizados</li></ul><ContactLink site={site} source="brands" label="Propor uma parceria" topic="um projeto com minha marca" /><p className="sx-fine">{presentationCopy.partnershipBrief}</p></div><div className="sx-brand-art"><SectionImage imageKey="brands" loading="lazy" /><span>MÚSICA.<br />IDEIAS.<br />CONEXÕES.</span></div></div></section>
+      <section className="sx-brands sx-chapter sx-chapter--brands" id="marcas" aria-labelledby="marcas-title"><div className="sx-shell sx-section sx-brand-layout"><div><p className="sx-eyebrow">06 / PROJETOS & PARCERIAS</p><h2 id="marcas-title">DJ SOSÔ<br /><em>+ sua marca.</em></h2><p className="sx-body-lead">Música e conteúdo<br />com a personalidade da Sosô.</p><p>{presentationCopy.partnership}</p><ul className="sx-brand-services"><li><Sparkles size={18} />Conteúdo para redes e campanhas</li><li><Music2 size={18} />Apresentações em ativações de marca</li><li><ArrowUpRight size={18} />Projetos e experiências personalizados</li></ul><ContactLink site={site} source="brands" label="Propor uma parceria" topic="um projeto com minha marca" /><p className="sx-fine">{presentationCopy.partnershipBrief}</p></div><div className="sx-brand-art"><SectionImage imageKey="brands" loading="lazy" /><span>MÚSICA.<br />IDEIAS.<br />CONEXÕES.</span></div></div></section>
       <section className="sx-chapter sx-chapter--equipment" id="equipamentos" aria-labelledby="equipamentos-title">
         <div className="sx-section sx-shell">
-          <div className="sx-section-head"><div><p className="sx-eyebrow">06 / ESTRUTURA & SERVIÇOS</p><h2 id="equipamentos-title">O som.<br />E tudo <em>ao redor.</em></h2></div><p>Apresentação, equipamentos e registro.<br />Nossa equipe ajuda a planejar a estrutura do seu evento.</p></div>
+          <div className="sx-section-head"><div><p className="sx-eyebrow">07 / ESTRUTURA & SERVIÇOS</p><h2 id="equipamentos-title">O som.<br />E tudo <em>ao redor.</em></h2></div><p>Apresentação, equipamentos e registro.<br />Nossa equipe ajuda a planejar a estrutura do seu evento.</p></div>
           <div className="sx-setup-grid"><article><span>01</span><h3>DJ & Performance</h3><p>Sets com a Sosô, com duração e repertório definidos para a ocasião.</p></article><article><span>02</span><h3>Áudio & Equipamentos</h3><p>Locação avulsa ou junto da apresentação. Nossa equipe avalia a estrutura necessária para o espaço.</p></article><article><span>03</span><h3>Foto & Vídeo</h3><p>Registro do show ou do evento, como serviço adicional. Pacotes de 4h, 8h ou mais, a combinar.</p></article></div>
           <details className="sx-details"><summary>Equipamentos disponíveis <span>Ver detalhes técnicos +</span></summary><div className="sx-tech"><div><h3>Áudio & Performance</h3><ul>{site.gear.audio.map(item => <li key={item}>{item}</li>)}</ul></div><div><h3>Captura</h3><ul>{site.gear.capture.map(item => <li key={item}>{item}</li>)}</ul></div></div></details>
           <div className="sx-setup-bottom"><p>Já tem som no local? Nossa equipe avalia a estrutura com você.</p><ContactLink site={site} source="equipment" label="Conversar sobre a estrutura" topic="a estrutura para meu evento" /></div>
         </div>
       </section>
-      <section className="sx-contact sx-chapter sx-chapter--contact" id="contact" aria-labelledby="contact-title"><div className="sx-shell sx-section"><p className="sx-eyebrow">07 / VAMOS CONVERSAR</p><div className="sx-contact-layout"><div><h2 id="contact-title">Seu próximo evento.<br /><em>Um novo ritmo.</em></h2><p>{presentationCopy.contact}</p><ContactLink site={site} source="contact" light /><div className="sx-manager"><span>FALE COM NOSSA EQUIPE</span><strong>{site.contact.manager}</strong><a href={`mailto:${site.contact.email}`}>{site.contact.email} <ArrowUpRight size={15} /></a><small>{site.contact.role} · {site.location}</small></div></div><aside className="sx-kit"><Download size={28} /><p className="sx-eyebrow">PARA LEVAR COM VOCÊ</p><h3>Tudo sobre a Sosô.<br />Em um só lugar.</h3><p>Apresentação, formatos, repertório e contato. Um material para compartilhar com sua equipe.</p><KitLink /><a className="sx-inline-link" href="/presskit">Ver versão online <ArrowUpRight size={16} /></a></aside></div><div className="sx-faq"><h3>Dúvidas antes de contratar?</h3><p>Veja como nossa equipe organiza apresentações e parcerias.</p>{faq.map(item => <details key={item.question}><summary>{item.question}<span aria-hidden="true">+</span></summary><p>{item.answer}</p></details>)}</div></div></section>
+      <section className="sx-contact sx-chapter sx-chapter--contact" id="contact" aria-labelledby="contact-title"><div className="sx-shell sx-section"><p className="sx-eyebrow">08 / VAMOS CONVERSAR</p><div className="sx-contact-layout"><div><h2 id="contact-title">Seu próximo evento.<br /><em>Um novo ritmo.</em></h2><p>{presentationCopy.contact}</p><ContactLink site={site} source="contact" light /><div className="sx-manager"><span>FALE COM NOSSA EQUIPE</span><strong>{site.contact.manager}</strong><a href={`mailto:${site.contact.email}`}>{site.contact.email} <ArrowUpRight size={15} /></a><small>{site.contact.role} · {site.location}</small></div></div><aside className="sx-kit"><Download size={28} /><p className="sx-eyebrow">PARA LEVAR COM VOCÊ</p><h3>Tudo sobre a Sosô.<br />Em um só lugar.</h3><p>Apresentação, formatos, repertório e contato. Um material para compartilhar com sua equipe.</p><KitLink /><a className="sx-inline-link" href="/presskit">Ver versão online <ArrowUpRight size={16} /></a></aside></div><div className="sx-faq"><h3>Dúvidas antes de contratar?</h3><p>Veja como nossa equipe organiza apresentações e parcerias.</p>{faq.map(item => <details key={item.question}><summary>{item.question}<span aria-hidden="true">+</span></summary><p>{item.answer}</p></details>)}</div></div></section>
     </main>
-    <footer className="sx-footer sx-shell"><Brand /><p>Música para conectar pessoas.<br /><small>© {new Date().getFullYear()} DJ SOSÔ · São Paulo, Brasil</small></p><div><a href={site.social.instagram} onClick={() => track('instagram_clicked')}>Instagram <ArrowUpRight size={15} /></a><a href={site.social.tiktok} onClick={() => track('tiktok_clicked')}>TikTok <ArrowUpRight size={15} /></a></div></footer>
+    <footer className="sx-footer sx-shell"><Brand /><p>Música para conectar pessoas.<br /><small>© {new Date().getFullYear()} DJ SOSÔ · São Paulo, Brasil</small></p><div><a href={site.social.instagram} onClick={() => track('instagram_clicked')}>Instagram <ArrowUpRight size={15} /></a><a href={site.social.tiktok} onClick={() => track('tiktok_clicked')}>TikTok <ArrowUpRight size={15} /></a><a href={site.social.youtube} onClick={() => track('youtube_clicked', { source: 'footer' })}>YouTube <ArrowUpRight size={15} /></a></div></footer>
     {fab && !menu && lightbox === null && <a className="sx-fab" href={whatsappLink(site.contact.whatsapp)} onClick={() => track('whatsapp_fab_clicked')} aria-label="Conversar com nossa equipe no WhatsApp"><MessageCircle size={21} /><span>Vamos conversar</span></a>}
     {lightbox !== null && photos.length > 0 && <Lightbox items={photos} index={lightbox} onChange={setLightbox} onClose={() => setLightbox(null)} />}
   </div>;

@@ -3,11 +3,13 @@ export const site = {
   description: 'DJ Sosô, 9 anos. Música para lounges, sunsets, festas, eventos e projetos com marcas. São Paulo. Consulte a disponibilidade com nossa equipe.',
   navigation: [
     { label: 'Resumo', href: '#resumo' },
-    { label: 'Vídeos', href: '#videos' }, { label: 'Eventos', href: '#eventos' },
+    { label: 'Vídeos', href: '#videos' }, { label: 'Set', href: '#set' },
+    { label: 'Eventos', href: '#eventos' },
     { label: 'Sofia', href: '#about' }, { label: 'Fotos', href: '#gallery' },
     { label: 'Marcas', href: '#marcas' }, { label: 'Contato', href: '#contact' },
   ],
-  social: { instagram: 'https://www.instagram.com/dj.soso.pavao', tiktok: 'https://www.tiktok.com/@dj.soso.pavao' },
+  social: { instagram: 'https://www.instagram.com/dj.soso.pavao', tiktok: 'https://www.tiktok.com/@dj.soso.pavao', youtube: 'https://www.youtube.com/@DJSos%C3%B4-v4s' },
+  featuredSet: { videoId: '1Na3gArHoV0', title: 'SUNSET MIX', description: 'Brasilidades, House & Clássicos Remixados', url: 'https://www.youtube.com/watch?v=1Na3gArHoV0' },
   contact: { manager: 'Bruno Pavão', role: 'Contato da equipe e adulto responsável', email: 'pavaopics@gmail.com', whatsapp: 'https://wa.me/5511943366761?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20DJ%20Sos%C3%B4' },
   repertoire: ['Afro House', 'Pop Dance', 'Anos 80 · 90 · 2000', 'Melodic House', 'Lounge', 'Sunset'],
   gear: {
