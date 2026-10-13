@@ -276,7 +276,7 @@ export function SiteExperience({ site, gallery }: Props) {
             <p className="sx-eyebrow">02 / SET NO YOUTUBE</p>
             <h2 id="set-title">O set completo.<br /><em>Direto no YouTube.</em></h2>
             <p className="sx-set-lead">{site.featuredSet.title} — {site.featuredSet.description}</p>
-            <p>Um set gravado para ouvir do começo ao fim. De Brasilidades e House a clássicos remixados, do jeito que a Sosô toca ao vivo.</p>
+            <p>Um set gravado para ouvir do começo ao fim. De Brasilidades, Disco e House a clássicos remixados, do jeito que a Sosô toca ao vivo.</p>
             <div className="sx-set-actions">
               <a className="sx-button" href={site.featuredSet.url} target="_blank" rel="noreferrer" onClick={() => track('youtube_clicked', { source: 'set_link' })}><CirclePlay size={18} />Assistir no YouTube<ArrowUpRight size={17} /></a>
               <a className="sx-inline-link" href={site.social.youtube} target="_blank" rel="noreferrer" onClick={() => track('youtube_clicked', { source: 'set_channel' })}>Inscreva-se no canal <ArrowUpRight size={16} /></a>
