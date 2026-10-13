@@ -144,7 +144,7 @@ export function AdminClient() {
       await refresh();
       setPhoto({ file: null, num: '', desc: '' });
       const saved = Math.round((1 - optimized.size / file.size) * 100);
-      setPhotoResult(`${formatSize(file.size)} → ${formatSize(optimized.size)} (${saved}% menor). Salva em public/galeria/fotos/${baseName(photo.num, optimized)}${optimized === file ? ' — o original já era menor e foi mantido.' : '.'}`);
+      setPhotoResult(`${formatSize(file.size)} → ${formatSize(optimized.size)} (${saved}% menor). Salva em public/galeria/fotos/${baseName(photo.num, optimized)}${optimized === file ? ', o original já era menor e foi mantido.' : '.'}`);
       setMsg('Foto enviada!');
     } catch (e) {
       setMsg(`Erro: ${e instanceof Error ? e.message : String(e)}`);

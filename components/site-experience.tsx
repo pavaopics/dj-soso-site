@@ -216,9 +216,9 @@ function YouTubeSet({ set }: { set: SiteConfig['featuredSet'] }) {
   const fallback = `https://i.ytimg.com/vi/${set.videoId}/hqdefault.jpg`;
   return <div className="sx-set-media">
     {playing
-      ? <iframe src={`https://www.youtube-nocookie.com/embed/${set.videoId}?autoplay=1&rel=0`} title={`${set.title} — DJ Sosô no YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+      ? <iframe src={`https://www.youtube-nocookie.com/embed/${set.videoId}?autoplay=1&rel=0`} title={`${set.title} · DJ Sosô no YouTube`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
       : <button type="button" className="sx-set-poster" onClick={() => { setPlaying(true); track('youtube_clicked', { source: 'set_section' }); }} aria-label={`Assistir ao set ${set.title} no YouTube`}>
-          <img src={poster} alt={`Capa do set ${set.title} — DJ Sosô no YouTube`} loading="lazy" onError={event => { const image = event.currentTarget; if (!image.src.endsWith('hqdefault.jpg')) image.src = fallback; }} />
+          <img src={poster} alt={`Capa do set ${set.title} · DJ Sosô no YouTube`} loading="lazy" onError={event => { const image = event.currentTarget; if (!image.src.endsWith('hqdefault.jpg')) image.src = fallback; }} />
           <span className="sx-set-play" aria-hidden="true"><Play size={30} fill="currentColor" /></span>
           <span className="sx-set-overlay" aria-hidden="true"><span className="sx-set-tag">YOUTUBE · SET COMPLETO</span><span className="sx-set-hint">Dê o play</span></span>
         </button>}
@@ -239,7 +239,7 @@ export function SiteExperience({ site, gallery }: Props) {
   const photos = gallery.filter(item => item.type === 'foto').map(item => {
     const fileNumber = item.src?.match(/\/(\d+)\.[^/?]+(?:\?|$)/)?.[1];
     const labelKey = fileNumber ? `foto-${fileNumber}` : item.id;
-    return { ...item, alt: /^\d+$/.test(item.alt) ? photoLabels[labelKey] || 'DJ Sosô — galeria' : item.alt };
+    return { ...item, alt: /^\d+$/.test(item.alt) ? photoLabels[labelKey] || 'DJ Sosô · galeria' : item.alt };
   }).sort((a, b) => {
     const rank = (id: string) => order.includes(id) ? order.indexOf(id) : order.length;
     return rank(a.id) - rank(b.id);
@@ -275,7 +275,7 @@ export function SiteExperience({ site, gallery }: Props) {
           <div className="sx-set-copy">
             <p className="sx-eyebrow">02 / SET NO YOUTUBE</p>
             <h2 id="set-title">O set completo.<br /><em>Direto no YouTube.</em></h2>
-            <p className="sx-set-lead">{site.featuredSet.title} — {site.featuredSet.description}</p>
+            <p className="sx-set-lead">{site.featuredSet.title} · {site.featuredSet.description}</p>
             <p>Um set gravado para ouvir do começo ao fim. De Brasilidades, Disco e House a clássicos remixados, do jeito que a Sosô toca ao vivo.</p>
             <div className="sx-set-actions">
               <a className="sx-button" href={site.featuredSet.url} target="_blank" rel="noreferrer" onClick={() => track('youtube_clicked', { source: 'set_link' })}><CirclePlay size={18} />Assistir no YouTube<ArrowUpRight size={17} /></a>

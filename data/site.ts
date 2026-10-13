@@ -9,7 +9,7 @@ export const site = {
     { label: 'Marcas', href: '#marcas' }, { label: 'Contato', href: '#contact' },
   ],
   social: { instagram: 'https://www.instagram.com/dj.soso.pavao', tiktok: 'https://www.tiktok.com/@dj.soso.pavao', youtube: 'https://www.youtube.com/@DJSos%C3%B4-v4s' },
-  featuredSet: { videoId: 'SFFNz_VSOIw', title: 'FULL DJ SET 2026', description: 'Brasilidades, Disco & House', url: 'https://www.youtube.com/watch?v=SFFNz_VSOIw' },
+  featuredSet: { videoId: 'SFFNz_VSOIw', title: 'FULL DJ SET 2026', description: 'Brasilidades, Disco & House', url: 'https://www.youtube.com/watch?v=SFFNz_VSOIw&t=0s' },
   contact: { manager: 'Bruno Pavão', role: 'Contato da equipe e adulto responsável', email: 'pavaopics@gmail.com', whatsapp: 'https://wa.me/5511943366761?text=Ol%C3%A1!%20Gostaria%20de%20contratar%20a%20DJ%20Sos%C3%B4' },
   repertoire: ['Afro House', 'Pop Dance', 'Anos 80 · 90 · 2000', 'Melodic House', 'Lounge', 'Sunset'],
   gear: {
