@@ -11,7 +11,8 @@
 .sx-hero--portrait-first .sx-intro{margin-inline:auto}
 .sx-hero--portrait-first .sx-actions,.sx-hero--portrait-first .sx-hero-foot{justify-content:center}
 .sx-summary{background:radial-gradient(ellipse at 80% 45%,#d8bb7914,transparent 65%),#191b16;border-bottom:1px solid #d8bb792b}
-.sx-summary-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:clamp(32px,6vw,96px);align-items:center}
+.sx-summary-layout{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(32px,6vw,96px);align-items:center}
+@media(min-width:768px){.sx-summary .sx-video-card{order:1}.sx-summary-copy{order:2}}
 .sx-summary-copy{min-width:0}
 .sx-summary-copy h2{margin:24px 0}
 .sx-summary-copy .sx-summary-lead{font-size:clamp(19px,2vw,25px);color:var(--sx-gold);margin-bottom:16px;letter-spacing:-.025em}
